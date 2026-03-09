@@ -1,3 +1,32 @@
+-- 1. Create the validation function FIRST
+CREATE OR REPLACE FUNCTION validate_message_sequence(sequence JSONB)
+RETURNS BOOLEAN AS $$
+DECLARE
+    item JSONB;
+    delay_days INTEGER;
+BEGIN
+    IF jsonb_typeof(sequence) != 'array' THEN
+        RETURN FALSE;
+    END IF;
+    
+    FOR item IN SELECT * FROM jsonb_array_elements(sequence)
+    LOOP
+        IF NOT (item ? 'delay_days' AND item ? 'message_template') THEN
+            RETURN FALSE;
+        END IF;
+        
+        IF jsonb_typeof(item->'delay_days') != 'number' OR
+           jsonb_typeof(item->'message_template') != 'string' THEN
+            RETURN FALSE;
+        END IF;
+    END LOOP;
+    
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
+
 -- ============================================================
 -- RECALL SaaS — Production-Ready Multi-Tenant Schema
 -- Healthcare-Agnostic Recall Management System
@@ -809,8 +838,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON SCHEMA public IS 'RECALL SaaS - Healthcare Recall Management System';
 COMMENT ON DATABASE postgres IS 'Multi-tenant recall management database for healthcare practices';
+ 
 
 -- Add documentation for complex functions
 COMMENT ON FUNCTION validate_message_sequence(JSONB) IS 'Validates message sequence JSON structure and values';
 COMMENT ON FUNCTION check_tenant_limits(UUID, TEXT) IS 'Checks if tenant has capacity for requested resource';
+COMMENT ON FUNCTION get_recall_stats(UUID, INTEGER) IS 'Returns recall statistics breakdown with percentages';
 COMMENT ON FUNCTION get_recall_stats(UUID, INTEGER) IS 'Returns recall statistics breakdown with percentages';
