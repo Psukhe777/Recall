@@ -1,0 +1,1104 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall — Healthcare Automation That Actually Works</title>
+    <meta name="description" content="Turn no-shows into revenue. Automated patient recall for modern healthcare practices.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #fdfcfb;
+            --surface: #ffffff;
+            --text: #0a0a0a;
+            --text-muted: #6b7280;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #059669;
+            --warning: #f59e0b;
+            --border: #e5e7eb;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+        
+        .display-font {
+            font-family: 'Fraunces', Georgia, serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(253, 252, 251, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 1rem 2rem;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 8rem 2rem 6rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .hero-content h1 {
+            font-size: 4rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .hero-content .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 3rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--border);
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+        
+        .stat {
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            display: block;
+        }
+        
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        /* Hero Visual */
+        .hero-visual {
+            position: relative;
+            animation: fadeIn 1s ease-out 0.4s both;
+        }
+        
+        .dashboard-preview {
+            background: white;
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dashboard-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: var(--gradient);
+            opacity: 0.1;
+        }
+        
+        .preview-header {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .preview-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+        
+        .preview-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+        }
+        
+        .preview-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .preview-card:nth-child(1) { animation-delay: 0.8s; }
+        .preview-card:nth-child(2) { animation-delay: 1s; }
+        .preview-card:nth-child(3) { animation-delay: 1.2s; }
+        
+        .preview-info h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .preview-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .preview-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: var(--success);
+        }
+        
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+        
+        .features-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 4rem;
+        }
+        
+        .section-label {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .section-header h2 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section-header p {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            background: var(--surface);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent);
+        }
+        
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--accent-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.375rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature-card p {
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+        
+        /* Service Types */
+        .service-types {
+            padding: 6rem 2rem;
+            background: var(--bg);
+        }
+        
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 3rem auto 0;
+        }
+        
+        .service-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .service-card h4 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .service-card p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        /* Pricing Section */
+        .pricing {
+            padding: 6rem 2rem;
+            background: white;
+        }
+        
+        .pricing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+        
+        .pricing-card {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .pricing-card.featured {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: white;
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pricing-card .description {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            min-height: 48px;
+        }
+        
+        .price {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .price-amount {
+            font-size: 3.5rem;
+            font-weight: 800;
+        }
+        
+        .price-currency {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        
+        .price-period {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+        
+        .features-list {
+            list-style: none;
+            margin: 2rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .features-list li {
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
+        
+        .features-list li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+        
+        .pricing-cta {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+        
+        /* Testimonials */
+        .testimonials {
+            padding: 6rem 2rem;
+            background: var(--bg);
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 3rem auto 0;
+        }
+        
+        .testimonial-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .testimonial-text {
+            font-size: 1.125rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .author-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+        
+        .author-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .author-role {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            padding: 6rem 2rem;
+            background: var(--text);
+            color: white;
+            text-align: center;
+        }
+        
+        .cta-section h2 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .cta-section p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        
+        .cta-section .btn-primary {
+            background: white;
+            color: var(--text);
+            font-size: 1.125rem;
+            padding: 1rem 2.5rem;
+        }
+        
+        .cta-section .btn-primary:hover {
+            background: var(--accent-light);
+        }
+        
+        /* Footer */
+        footer {
+            padding: 4rem 2rem 2rem;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+        
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+            margin-bottom: 3rem;
+        }
+        
+        .footer-brand p {
+            color: var(--text-muted);
+            margin: 1rem 0;
+        }
+        
+        .footer-links h4 {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .footer-links ul {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+        
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+        
+        .footer-bottom {
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero {
+                grid-template-columns: 1fr;
+                padding: 6rem 2rem 4rem;
+            }
+            
+            .features-grid,
+            .service-grid,
+            .pricing-grid,
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .footer-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .section-header h2 {
+                font-size: 2rem;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon">🏥</div>
+                <span class="display-font">Recall</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+                <li><a href="#" class="btn btn-primary">Start Free Trial</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="display-font">
+                Turn no-shows into <span class="gradient-text">revenue</span>
+            </h1>
+            <p>
+                Automate patient recalls across your practice. Intelligent SMS campaigns that fill your schedule and recover revenue — without lifting a finger.
+            </p>
+            <div class="hero-cta">
+                <a href="#" class="btn btn-primary">Start 14-Day Free Trial</a>
+                <a href="#" class="btn btn-secondary">Watch Demo</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">36%</span>
+                    <span class="stat-label">Average conversion rate</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">$85k</span>
+                    <span class="stat-label">Avg revenue recovered/year</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">5 min</span>
+                    <span class="stat-label">Setup time</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="dashboard-preview">
+                <div class="preview-header">
+                    <div class="preview-dot"></div>
+                    <div class="preview-dot"></div>
+                    <div class="preview-dot"></div>
+                </div>
+                <div class="preview-content">
+                    <div class="preview-card">
+                        <div class="preview-info">
+                            <h4>Sarah Chen</h4>
+                            <p>6-month dental check-up due</p>
+                        </div>
+                        <span class="preview-badge badge-success">Booked</span>
+                    </div>
+                    <div class="preview-card">
+                        <div class="preview-info">
+                            <h4>Marcus Webb</h4>
+                            <p>Annual eye test overdue</p>
+                        </div>
+                        <span class="preview-badge badge-pending">In Progress</span>
+                    </div>
+                    <div class="preview-card">
+                        <div class="preview-info">
+                            <h4>Priya Sharma</h4>
+                            <p>Physio follow-up assessment</p>
+                        </div>
+                        <span class="preview-badge badge-success">Booked</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="features-container">
+            <div class="section-header">
+                <span class="section-label">Why Recall?</span>
+                <h2 class="display-font">Everything you need to automate patient recall</h2>
+                <p>Built for modern healthcare practices. Works across all service types.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>Intelligent Automation</h3>
+                    <p>Smart multi-step campaigns that adapt to patient responses. No manual follow-up required.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>SMS + Two-Way Chat</h3>
+                    <p>Patients reply directly to book, snooze, or opt-out. Conversations feel natural, not robotic.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Real-Time Analytics</h3>
+                    <p>Track conversion rates, revenue recovered, and campaign performance in a beautiful dashboard.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3>Seamless Integration</h3>
+                    <p>Connects with your practice management system. Bulk import patients in minutes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Custom Templates</h3>
+                    <p>Pre-built templates for every service type. Or create your own branded messages.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>HIPAA Compliant</h3>
+                    <p>Enterprise-grade security. Your patient data is encrypted and protected.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Service Types -->
+    <section id="services" class="service-types">
+        <div class="features-container">
+            <div class="section-header">
+                <span class="section-label">Multi-Service Platform</span>
+                <h2 class="display-font">Built for your healthcare specialty</h2>
+                <p>Recall works across all healthcare service types with specialty-specific templates</p>
+            </div>
+            <div class="service-grid">
+                <div class="service-card">
+                    <span class="service-icon">🦷</span>
+                    <h4>Dental</h4>
+                    <p>6-month cleanings, x-ray reviews</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">👁️</span>
+                    <h4>Optometry</h4>
+                    <p>Annual eye tests, contact refills</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">🦴</span>
+                    <h4>Physiotherapy</h4>
+                    <p>Follow-up assessments, maintenance</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">🩺</span>
+                    <h4>General Practice</h4>
+                    <p>Annual health checks, screenings</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">🐾</span>
+                    <h4>Veterinary</h4>
+                    <p>Pet vaccinations, check-ups</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">🧠</span>
+                    <h4>Mental Health</h4>
+                    <p>Session reminders, check-ins</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">💆</span>
+                    <h4>Chiropractic</h4>
+                    <p>Adjustment maintenance, reviews</p>
+                </div>
+                <div class="service-card">
+                    <span class="service-icon">✨</span>
+                    <h4>& More</h4>
+                    <p>Dermatology, podiatry, custom</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="pricing-container">
+            <div class="section-header">
+                <span class="section-label">Simple Pricing</span>
+                <h2 class="display-font">Choose your plan</h2>
+                <p>No hidden fees. Cancel anytime. All plans include 14-day free trial.</p>
+            </div>
+            <div class="pricing-grid">
+                <!-- Starter Plan -->
+                <div class="pricing-card">
+                    <h3>Starter</h3>
+                    <p class="description">Perfect for small practices getting started with automation</p>
+                    <div class="price">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">99</span>
+                    </div>
+                    <p class="price-period">per month</p>
+                    <ul class="features-list">
+                        <li>Up to 500 active patients</li>
+                        <li>1,000 SMS messages/month</li>
+                        <li>3 custom templates</li>
+                        <li>Basic analytics</li>
+                        <li>Email support</li>
+                        <li>Single user access</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary pricing-cta">Start Free Trial</a>
+                </div>
+
+                <!-- Growth Plan (Featured) -->
+                <div class="pricing-card featured">
+                    <span class="popular-badge">Most Popular</span>
+                    <h3>Growth</h3>
+                    <p class="description">For established practices scaling their recall program</p>
+                    <div class="price">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">299</span>
+                    </div>
+                    <p class="price-period">per month</p>
+                    <ul class="features-list">
+                        <li>Up to 2,500 active patients</li>
+                        <li>5,000 SMS messages/month</li>
+                        <li>Unlimited custom templates</li>
+                        <li>Advanced analytics & reporting</li>
+                        <li>Priority support (4hr response)</li>
+                        <li>Up to 5 team members</li>
+                        <li>API access</li>
+                        <li>Bulk import tools</li>
+                    </ul>
+                    <a href="#" class="btn btn-primary pricing-cta">Start Free Trial</a>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="pricing-card">
+                    <h3>Enterprise</h3>
+                    <p class="description">For multi-location practices and healthcare groups</p>
+                    <div class="price">
+                        <span class="price-amount" style="font-size: 2rem;">Custom</span>
+                    </div>
+                    <p class="price-period">Tailored to your needs</p>
+                    <ul class="features-list">
+                        <li>Unlimited patients</li>
+                        <li>Unlimited SMS messages</li>
+                        <li>Custom integrations</li>
+                        <li>Dedicated account manager</li>
+                        <li>24/7 phone support</li>
+                        <li>Unlimited team members</li>
+                        <li>White-label options</li>
+                        <li>Custom SLA</li>
+                        <li>Multi-location support</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary pricing-cta">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="testimonials">
+        <div class="features-container">
+            <div class="section-header">
+                <span class="section-label">Testimonials</span>
+                <h2 class="display-font">Loved by healthcare professionals</h2>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "Recall has transformed our practice. We went from manually calling patients to having 40% of our recalls automatically convert to bookings. The ROI is incredible."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">SM</div>
+                        <div>
+                            <div class="author-name">Dr. Sarah Mitchell</div>
+                            <div class="author-role">Smile Dental, Melbourne</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "Setup took 10 minutes. Within the first month we recovered $12k in revenue from overdue appointments. This pays for itself many times over."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">JC</div>
+                        <div>
+                            <div class="author-name">James Chen</div>
+                            <div class="author-role">City Physio, Sydney</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "The two-way SMS is brilliant. Patients actually respond and book. It feels personal, not like spam. Our reception staff have so much more time now."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">EP</div>
+                        <div>
+                            <div class="author-name">Emma Patel</div>
+                            <div class="author-role">Vision Plus Optometry, Brisbane</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2 class="display-font">Ready to automate your recalls?</h2>
+        <p>Join hundreds of practices recovering revenue on autopilot. Start your free trial today — no credit card required.</p>
+        <a href="#" class="btn btn-primary">Start 14-Day Free Trial</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="logo">
+                    <div class="logo-icon">🏥</div>
+                    <span class="display-font">Recall</span>
+                </div>
+                <p>Healthcare automation that actually works. Turn no-shows into revenue.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#">Features</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Integrations</a></li>
+                    <li><a href="#">API Docs</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">HIPAA Compliance</a></li>
+                    <li><a href="#">Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Recall. All rights reserved. Built with ❤️ for healthcare professionals.</p>
+        </div>
+    </footer>
+</body>
+</html>
