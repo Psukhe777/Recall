@@ -1,5 +1,4 @@
 
-
 # ============================================================
 # RECALL SaaS — FastAPI Backend (PRODUCTION VERSION)
 # Healthcare-agnostic automated SMS recall engine
@@ -86,6 +85,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- SERVE THE LANDING PAGE ---
+# Mount the website folder so CSS/JS/Images load correctly
+if os.path.exists("website"):
+    app.mount("/assets", StaticFiles(directory="website"), name="static")
 
 # ============================================================
 # MODELS
@@ -523,8 +527,11 @@ def process_due_recalls():
 # ============================================================
 
 @app.get("/")
-def root():
-    return {"service": "Recall SaaS API", "version": "2.0.0", "status": "operational"}
+async def serve_landing():
+    """Serves your marketing landing page"""
+    if os.path.exists("website/recall.html"):
+        return FileResponse('website/recall.html')
+    return {"service": "Recall SaaS API", "version": "2.0.0", "status": "API Active - UI Missing"}
 
 @app.get("/health")
 def health_check():
