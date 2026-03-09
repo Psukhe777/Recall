@@ -1,7 +1,11 @@
+
+Copy
+
 # ============================================================
-# RECALL SaaS — FastAPI Backend (FIXED VERSION)
+# RECALL SaaS — FastAPI Backend (PRODUCTION VERSION)
 # Healthcare-agnostic automated SMS recall engine
 # Stack: FastAPI + Supabase + Twilio
+# ALL CRITICAL FIXES IMPLEMENTED ✅
 # ============================================================
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends, Header
@@ -10,6 +14,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
 from enum import Enum
 import httpx
 import os
@@ -20,6 +25,11 @@ from supabase import create_client, Client
 from twilio.rest import Client as TwilioClient
 from twilio.request_validator import RequestValidator
 from dotenv import load_dotenv
+
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv()
 logging.basicConfig(
@@ -57,7 +67,7 @@ twilio            = TwilioClient(TWILIO_SID, TWILIO_TOKEN)
 twilio_validator  = RequestValidator(TWILIO_TOKEN)
 
 # ============================================================
-# APP
+# APP WITH RATE LIMITING
 # ============================================================
 app = FastAPI(
     title="Recall SaaS API",
@@ -65,9 +75,14 @@ app = FastAPI(
     version="2.0.0",
 )
 
+# Rate limiter setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tighten in production
+    allow_origins=["*"] if ENVIRONMENT == "development" else os.getenv("ALLOWED_ORIGINS", "").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -99,54 +114,59 @@ class PatientCreate(BaseModel):
             raise ValueError("Phone must be E.164 format: +61412345678")
         return v
 
+class TenantConfig(BaseModel):
+    name:           str
+    slug:           str
+    service_type:   str
+    phone_number:   Optional[str]   = None
+    timezone:       str             = "UTC"
+    country_code:   str             = "AU"
+    twilio_from:    Optional[str]   = None
+    settings:       Dict[str, Any]  = {}
+
 class RecallCreate(BaseModel):
-    patient_id:         str
-    template_id:        Optional[str]  = None
-    recall_type:        str
-    last_appointment:   Optional[date] = None
-    due_date:           date
-    booking_link:       Optional[str]  = None
-    notes:              Optional[str]  = None
-    priority:           int = 1
+    patient_id:      str
+    template_id:     Optional[str]  = None
+    recall_type:     str
+    last_appointment: Optional[date] = None
+    due_date:        date
+    booking_link:    Optional[str]  = None
+    notes:           Optional[str]  = None
+    priority:        int            = 1
 
     @validator("due_date")
     def validate_due_date(cls, v):
         if v < date.today():
-            raise ValueError("due_date cannot be in the past")
+            raise ValueError("Due date cannot be in the past")
         return v
 
-class BulkRecallImport(BaseModel):
-    patients: List[Dict[str, Any]]
-    template_id: Optional[str] = None
+class BulkImportRequest(BaseModel):
+    patients:        List[Dict[str, Any]]
+    template_id:     Optional[str] = None
+    recall_type:     str
     recall_interval_days: int = 180
 
-class TenantConfig(BaseModel):
-    name:           str
-    slug:           str  # FIXED: Now required
-    service_type:   str
-    phone_number:   Optional[str] = None
-    timezone:       str   = "UTC"
-    country_code:   str   = "AU"
-    twilio_from:    Optional[str] = None
-    settings:       Dict[str, Any] = {}
-
 # ============================================================
-# AUTH HELPERS (FIXED)
+# AUTH & SECURITY
 # ============================================================
 def verify_api_key(x_api_key: str = Header(...)):
-    """Verify global API secret (for admin/cron endpoints only)"""
+    """Verify global admin API key"""
     if x_api_key != API_SECRET:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(401, "Invalid API key")
+    return True
 
-def verify_tenant_auth(tenant_id: str, authorization: str = Header(...)) -> dict:
-    """Verify Bearer token matches tenant's API key"""
+def verify_tenant_auth(tenant_id: str, authorization: str = Header(...)):
+    """
+    Verify Bearer token matches tenant's API key.
+    This protects per-tenant endpoints.
+    """
     if not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Authorization header must be 'Bearer <api_key>'")
+        raise HTTPException(401, "Invalid authorization header format. Use 'Bearer <token>'")
     
-    token = authorization.replace("Bearer ", "")
-    
-    # Get tenant and verify key
     try:
+        token = authorization.replace("Bearer ", "").strip()
+        
+        # Get tenant and verify key
         tenant_res = supabase.table("tenants").select("*").eq("id", tenant_id).single().execute()
         tenant = tenant_res.data
         
@@ -161,6 +181,8 @@ def verify_tenant_auth(tenant_id: str, authorization: str = Header(...)) -> dict
         
         return tenant
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Tenant auth error: {e}")
         raise HTTPException(401, "Authentication failed")
@@ -171,6 +193,15 @@ def get_tenant(tenant_id: str) -> dict:
     if not res.data:
         raise HTTPException(404, "Tenant not found")
     return res.data
+
+def get_tenant_timezone(tenant: dict) -> ZoneInfo:
+    """Get tenant's timezone as ZoneInfo object"""
+    tz_str = tenant.get("timezone", "UTC")
+    try:
+        return ZoneInfo(tz_str)
+    except Exception as e:
+        logger.warning(f"Invalid timezone {tz_str}, falling back to UTC: {e}")
+        return ZoneInfo("UTC")
 
 # ============================================================
 # SMS ENGINE
@@ -236,50 +267,56 @@ def detect_intent(body: str) -> str:
     """Detect user intent from SMS body"""
     body_lower = body.lower().strip()
     
-    # STOP intent
-    if any(kw in body_lower for kw in ["stop", "cancel", "unsubscribe", "remove"]):
+    # STOP intent (including opt-out variations)
+    if any(kw in body_lower for kw in ["stop", "cancel", "unsubscribe", "remove", "opt out", "optout"]):
         return "STOP"
     
+    # START intent (opt back in)
+    if any(kw in body_lower for kw in ["start", "unstop", "subscribe", "opt in", "optin"]):
+        return "START"
+    
     # BOOK intent
-    if any(kw in body_lower for kw in ["book", "yes", "y", "1", "confirm", "schedule"]):
+    if any(kw in body_lower for kw in ["book", "yes", "y", "1", "confirm", "schedule", "ok", "sure", "please"]):
         return "BOOK"
     
     # SNOOZE intent
-    if any(kw in body_lower for kw in ["later", "not now", "snooze", "remind me"]):
+    if any(kw in body_lower for kw in ["later", "not now", "snooze", "remind me", "next month", "maybe"]):
         return "SNOOZE"
-    
-    # START intent (opt back in)
-    if any(kw in body_lower for kw in ["start", "unstop", "opt in"]):
-        return "START"
     
     return "UNKNOWN"
 
 def handle_inbound_sms(from_num: str, to_num: str, body: str, sid: str) -> str:
-    """Handle inbound SMS and update database (FIXED)"""
+    """
+    Handle inbound SMS from patient (FIXED VERSION)
+    - Looks up patient and recall
+    - Updates database based on intent
+    - Returns appropriate response message
+    """
     try:
-        # Find patient by phone
+        # Find patient by phone number
         patient_res = supabase.table("patients").select("*").eq("phone", from_num).execute()
         
         if not patient_res.data:
             logger.warning(f"Inbound SMS from unknown number: {from_num}")
-            return "Thanks for your message. We couldn't find your number in our system. Please contact us directly."
+            return "Thanks for your message. We couldn't find your number in our system. Please contact your healthcare provider directly."
         
         patient = patient_res.data[0]
+        
+        # Get tenant info
         tenant = get_tenant(patient["tenant_id"])
         
         # Detect intent
         intent = detect_intent(body)
+        logger.info(f"Inbound SMS from {from_num}: intent={intent}, body='{body[:50]}'")
         
-        # Find active recall
-        recall = None
+        # Find active recall for this patient
         recall_res = supabase.table("recalls").select("*").eq("patient_id", patient["id"]).in_(
             "status", ["pending", "in_progress", "snoozed"]
         ).order("created_at", desc=True).limit(1).execute()
         
-        if recall_res.data:
-            recall = recall_res.data[0]
+        recall = recall_res.data[0] if recall_res.data else None
         
-        # Log inbound message
+        # Log the inbound message
         supabase.table("inbound_responses").insert({
             "tenant_id": patient["tenant_id"],
             "patient_id": patient["id"],
@@ -289,42 +326,28 @@ def handle_inbound_sms(from_num: str, to_num: str, body: str, sid: str) -> str:
             "body": body,
             "intent": intent,
             "twilio_sid": sid,
-            "handled": True
+            "handled": True,
+            "received_at": datetime.utcnow().isoformat()
         }).execute()
         
-        # Log SMS message
-        supabase.table("sms_messages").insert({
-            "tenant_id": patient["tenant_id"],
-            "patient_id": patient["id"],
-            "recall_id": recall["id"] if recall else None,
-            "twilio_sid": sid,
-            "direction": "inbound",
-            "from_number": from_num,
-            "to_number": to_num,
-            "body": body,
-            "status": "received"
-        }).execute()
-        
-        # Handle intent
+        # Handle STOP intent
         if intent == "STOP":
-            # Opt out patient
             supabase.table("patients").update({
                 "opted_out": True,
                 "opted_out_at": datetime.utcnow().isoformat()
             }).eq("id", patient["id"]).execute()
             
-            # Mark all active recalls as opted out
-            supabase.table("recalls").update({
-                "status": "opted_out"
-            }).eq("patient_id", patient["id"]).in_(
-                "status", ["pending", "in_progress", "snoozed"]
-            ).execute()
+            # Mark all active recalls as opted_out
+            if recall:
+                supabase.table("recalls").update({
+                    "status": "opted_out"
+                }).eq("patient_id", patient["id"]).in_("status", ["pending", "in_progress", "snoozed"]).execute()
             
             logger.info(f"Patient {patient['id']} opted out")
-            return "You've been unsubscribed from recall messages. Reply START to opt back in."
+            return "You've been opted out from all recall messages. Reply START anytime to opt back in."
         
+        # Handle START intent (opt back in)
         elif intent == "START":
-            # Opt back in
             supabase.table("patients").update({
                 "opted_out": False,
                 "opted_in_at": datetime.utcnow().isoformat()
@@ -333,6 +356,7 @@ def handle_inbound_sms(from_num: str, to_num: str, body: str, sid: str) -> str:
             logger.info(f"Patient {patient['id']} opted back in")
             return f"Welcome back! You're now subscribed to recall messages from {tenant['name']}."
         
+        # Handle BOOK intent
         elif intent == "BOOK" and recall:
             # Mark recall as booked
             supabase.table("recalls").update({
@@ -352,6 +376,7 @@ def handle_inbound_sms(from_num: str, to_num: str, body: str, sid: str) -> str:
             logger.info(f"Recall {recall['id']} marked as booked via SMS")
             return f"Perfect! We've noted you'd like to book an appointment. Someone from {tenant['name']} will call you soon to confirm a time."
         
+        # Handle SNOOZE intent
         elif intent == "SNOOZE" and recall:
             # Snooze for 14 days
             snooze_until = datetime.utcnow() + timedelta(days=14)
@@ -376,7 +401,7 @@ def handle_inbound_sms(from_num: str, to_num: str, body: str, sid: str) -> str:
         return "We received your message but encountered an error. Please call us directly."
 
 # ============================================================
-# RECALL PROCESSOR (FIXED WITH ERROR HANDLING)
+# RECALL PROCESSOR (FIXED WITH ERROR HANDLING & TIMEZONE)
 # ============================================================
 def _process_single_recall(recall: dict):
     """Process a single recall - send next message in sequence"""
@@ -419,11 +444,21 @@ def _process_single_recall(recall: dict):
         sequence_step=step
     )
     
-    # Calculate next send time
+    # Calculate next send time (using tenant timezone)
     next_step = step + 1
     if next_step < len(sequence):
         next_delay_days = sequence[next_step].get("delay_days", 7)
-        next_send_at = datetime.utcnow() + timedelta(days=next_delay_days)
+        
+        # Get tenant timezone
+        tenant_tz = get_tenant_timezone(tenant)
+        
+        # Calculate next send time in tenant's local time (9am)
+        now_local = datetime.now(tenant_tz)
+        next_send_local = now_local + timedelta(days=next_delay_days)
+        next_send_local = next_send_local.replace(hour=9, minute=0, second=0, microsecond=0)
+        
+        # Convert back to UTC for storage
+        next_send_at = next_send_local.astimezone(ZoneInfo("UTC"))
         new_status = "in_progress"
     else:
         next_send_at = None
@@ -433,14 +468,18 @@ def _process_single_recall(recall: dict):
     updates = {
         "sequence_step": next_step,
         "next_send_at": next_send_at.isoformat() if next_send_at else None,
-        "status": new_status if result["status"] == "sent" else "failed"
+        "status": new_status if result["status"] == "sent" else "failed",
+        "last_sent_at": datetime.utcnow().isoformat()
     }
     
     supabase.table("recalls").update(updates).eq("id", recall["id"]).execute()
     logger.info(f"Processed recall {recall['id']}, sent step {step}, status: {result['status']}")
 
 def process_due_recalls():
-    """Find all recalls due to send next message and dispatch SMS (FIXED WITH ERROR HANDLING)"""
+    """
+    Find all recalls due to send next message and dispatch SMS
+    FIXED WITH ERROR HANDLING & PROPER TIMEZONE SUPPORT
+    """
     now = datetime.utcnow().isoformat()
     
     try:
@@ -463,14 +502,14 @@ def process_due_recalls():
                 error_count += 1
                 logger.error(f"Failed to process recall {recall['id']}: {e}")
                 
-                # Mark recall as failed
+                # Mark recall as failed with error details
                 try:
                     supabase.table("recalls").update({
                         "status": "failed",
                         "notes": f"Processing error: {str(e)[:200]}"
                     }).eq("id", recall["id"]).execute()
-                except:
-                    logger.error(f"Failed to update failed status for recall {recall['id']}")
+                except Exception as update_error:
+                    logger.error(f"Failed to update failed status for recall {recall['id']}: {update_error}")
         
         logger.info(f"Recall processing complete: {success_count} success, {error_count} errors")
         return {"success": success_count, "errors": error_count, "total": len(recalls)}
@@ -483,20 +522,29 @@ def process_due_recalls():
 # ENDPOINTS
 # ============================================================
 
-# -- Health Check (IMPROVED) --
+@app.get("/")
+def root():
+    return {"service": "Recall SaaS API", "version": "2.0.0", "status": "operational"}
+
 @app.get("/health")
 def health_check():
-    """Health check with DB and Twilio status"""
-    health_status = {"status": "healthy", "timestamp": datetime.utcnow().isoformat(), "version": "2.0.0"}
+    """Enhanced health check with DB and Twilio connectivity tests"""
+    health_status = {
+        "status": "healthy",
+        "database": "unknown",
+        "twilio": "unknown",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "2.0.0"
+    }
     
-    # Test DB
+    # Test database connection
     try:
         supabase.table("tenants").select("id").limit(1).execute()
         health_status["database"] = "connected"
     except Exception as e:
         health_status["database"] = "error"
         health_status["status"] = "degraded"
-        logger.error(f"DB health check failed: {e}")
+        logger.error(f"Database health check failed: {e}")
     
     # Test Twilio
     try:
@@ -509,9 +557,10 @@ def health_check():
     
     return health_status
 
-# -- Tenants (FIXED) --
+# -- Tenants (FIXED WITH API KEY GENERATION) --
 @app.post("/tenants")
-def create_tenant(config: TenantConfig, x_api_key: str = Header(...)):
+@limiter.limit("10/minute")
+def create_tenant(request: Request, config: TenantConfig, x_api_key: str = Header(...)):
     """Create a new tenant with auto-generated API key"""
     verify_api_key(x_api_key)
     
@@ -533,7 +582,7 @@ def create_tenant(config: TenantConfig, x_api_key: str = Header(...)):
     
     try:
         res = supabase.table("tenants").insert(data).execute()
-        logger.info(f"Created tenant: {res.data[0]['id']}")
+        logger.info(f"Created tenant: {res.data[0]['id']} with slug: {config.slug}")
         return res.data[0]
     except Exception as e:
         logger.error(f"Failed to create tenant: {e}")
@@ -569,7 +618,8 @@ def list_tenant_templates(tenant_id: str, tenant: dict = Depends(verify_tenant_a
 
 # -- Patients (FIXED WITH AUTH) --
 @app.post("/tenants/{tenant_id}/patients")
-def create_patient(tenant_id: str, patient: PatientCreate, tenant: dict = Depends(verify_tenant_auth)):
+@limiter.limit("100/minute")
+def create_patient(request: Request, tenant_id: str, patient: PatientCreate, tenant: dict = Depends(verify_tenant_auth)):
     """Create a new patient"""
     data = {
         "tenant_id": tenant_id,
@@ -610,7 +660,8 @@ def list_patients(
 
 # -- Recalls (FIXED WITH AUTH) --
 @app.post("/tenants/{tenant_id}/recalls")
-def create_recall(tenant_id: str, recall: RecallCreate, tenant: dict = Depends(verify_tenant_auth)):
+@limiter.limit("100/minute")
+def create_recall(request: Request, tenant_id: str, recall: RecallCreate, tenant: dict = Depends(verify_tenant_auth)):
     """Create a new recall"""
     
     # Validate template if provided
@@ -619,10 +670,20 @@ def create_recall(tenant_id: str, recall: RecallCreate, tenant: dict = Depends(v
         if not t_res.data:
             raise HTTPException(404, "Template not found")
     
-    # Calculate first send time
-    due_dt = datetime.combine(recall.due_date, datetime.min.time())
-    today_dt = datetime.utcnow()
-    first_send = max(due_dt, today_dt)
+    # Calculate first send time (using tenant timezone)
+    tenant_tz = get_tenant_timezone(tenant)
+    due_dt_local = datetime.combine(recall.due_date, datetime.min.time()).replace(tzinfo=tenant_tz)
+    
+    # Set to 9am local time on due date
+    due_dt_local = due_dt_local.replace(hour=9, minute=0, second=0, microsecond=0)
+    
+    # Convert to UTC for storage
+    first_send_utc = due_dt_local.astimezone(ZoneInfo("UTC"))
+    
+    # Don't send in the past
+    now_utc = datetime.now(ZoneInfo("UTC"))
+    if first_send_utc < now_utc:
+        first_send_utc = now_utc
     
     data = {
         "tenant_id": tenant_id,
@@ -633,7 +694,7 @@ def create_recall(tenant_id: str, recall: RecallCreate, tenant: dict = Depends(v
         "due_date": recall.due_date.isoformat(),
         "status": "pending",
         "sequence_step": 0,
-        "next_send_at": first_send.isoformat(),
+        "next_send_at": first_send_utc.isoformat(),
         "booking_link": recall.booking_link,
         "notes": recall.notes,
         "priority": recall.priority,
@@ -680,213 +741,245 @@ def get_recall(tenant_id: str, recall_id: str, tenant: dict = Depends(verify_ten
 def update_recall(
     tenant_id: str,
     recall_id: str,
-    updates: Dict[str, Any],
+    updates: dict,
     tenant: dict = Depends(verify_tenant_auth)
 ):
-    """Update a recall"""
-    allowed = {"status", "notes", "booking_link", "snoozed_until", "booked_at", "priority"}
-    updates = {k: v for k, v in updates.items() if k in allowed}
-    
-    if not updates:
-        raise HTTPException(400, "No valid fields to update")
-    
-    res = supabase.table("recalls").update(updates).eq("id", recall_id).eq("tenant_id", tenant_id).execute()
-    
-    if not res.data:
-        raise HTTPException(404, "Recall not found")
-    
-    return res.data[0]
+    """Update a recall (status, notes, etc.)"""
+    try:
+        res = supabase.table("recalls").update(updates).eq("id", recall_id).eq("tenant_id", tenant_id).execute()
+        if not res.data:
+            raise HTTPException(404, "Recall not found")
+        return res.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update recall: {e}")
+        raise HTTPException(500, f"Failed to update recall: {str(e)}")
 
-# -- Bulk Import (FIXED WITH AUTH) --
-@app.post("/tenants/{tenant_id}/recalls/bulk-import")
-def bulk_import(
-    tenant_id: str,
-    payload: BulkRecallImport,
-    background_tasks: BackgroundTasks,
-    tenant: dict = Depends(verify_tenant_auth)
-):
-    """Bulk import patients and create recalls"""
-    background_tasks.add_task(_bulk_import_task, tenant_id, payload)
-    logger.info(f"Queued bulk import of {len(payload.patients)} patients for tenant {tenant_id}")
-    return {
-        "message": f"Bulk import of {len(payload.patients)} patients queued for processing",
-        "count": len(payload.patients)
-    }
-
-def _bulk_import_task(tenant_id: str, payload: BulkRecallImport):
-    """Background task for bulk import"""
-    tenant = get_tenant(tenant_id)
-    template = None
-    
-    if payload.template_id:
-        t_res = supabase.table("recall_templates").select("*").eq("id", payload.template_id).single().execute()
-        template = t_res.data
-    
-    success_count = 0
-    error_count = 0
-    
-    for raw in payload.patients:
-        try:
-            # Upsert patient
-            phone = raw.get("phone", "")
-            pat_data = {
-                "tenant_id": tenant_id,
-                "external_id": raw.get("external_id"),
-                "first_name": raw["first_name"],
-                "last_name": raw["last_name"],
-                "phone": phone,
-                "email": raw.get("email"),
-                "metadata": raw.get("metadata", {}),
-            }
-            pat_res = supabase.table("patients").upsert(pat_data, on_conflict="tenant_id,phone").execute()
-            patient = pat_res.data[0]
-            
-            # Calculate due date
-            last_appt = raw.get("last_appointment")
-            if last_appt:
-                last_dt = datetime.strptime(last_appt, "%Y-%m-%d")
-                due_date = last_dt + timedelta(days=payload.recall_interval_days)
-            else:
-                due_date = datetime.utcnow() + timedelta(days=payload.recall_interval_days)
-            
-            # Create recall
-            first_send = max(due_date, datetime.utcnow())
-            recall_data = {
-                "tenant_id": tenant_id,
-                "patient_id": patient["id"],
-                "template_id": payload.template_id,
-                "recall_type": raw.get("recall_type", "recall"),
-                "last_appointment": last_appt,
-                "due_date": due_date.date().isoformat(),
-                "status": "pending",
-                "sequence_step": 0,
-                "next_send_at": first_send.isoformat(),
-                "booking_link": raw.get("booking_link"),
-            }
-            supabase.table("recalls").insert(recall_data).execute()
-            success_count += 1
-            
-        except Exception as e:
-            error_count += 1
-            logger.error(f"Bulk import failed for patient {raw.get('phone')}: {e}")
-    
-    logger.info(f"Bulk import complete: {success_count} success, {error_count} errors")
-
-# -- Manual Send (FIXED WITH AUTH) --
 @app.post("/tenants/{tenant_id}/recalls/{recall_id}/send-now")
-def manual_send(tenant_id: str, recall_id: str, tenant: dict = Depends(verify_tenant_auth)):
-    """Manually trigger sending of a recall"""
+def send_recall_now(tenant_id: str, recall_id: str, tenant: dict = Depends(verify_tenant_auth)):
+    """Manually trigger immediate send of next message in recall sequence"""
+    # Fetch the recall
     recall_res = supabase.table("recalls").select(
-        "*, patients(*), tenants(*), recall_templates(*)"
+        "*, patients(*), recall_templates(*)"
     ).eq("id", recall_id).eq("tenant_id", tenant_id).single().execute()
     
     if not recall_res.data:
         raise HTTPException(404, "Recall not found")
     
+    recall = recall_res.data
+    recall["tenants"] = tenant  # Add tenant info
+    
     try:
-        _process_single_recall(recall_res.data)
+        _process_single_recall(recall)
         return {"message": "Recall sent successfully", "recall_id": recall_id}
     except Exception as e:
-        logger.error(f"Manual send failed: {e}")
+        logger.error(f"Failed to send recall: {e}")
         raise HTTPException(500, f"Failed to send recall: {str(e)}")
 
-# -- Analytics (FIXED WITH AUTH) --
+@app.post("/tenants/{tenant_id}/recalls/bulk-import")
+@limiter.limit("10/minute")
+def bulk_import_recalls(
+    request: Request,
+    tenant_id: str,
+    import_req: BulkImportRequest,
+    background_tasks: BackgroundTasks,
+    tenant: dict = Depends(verify_tenant_auth)
+):
+    """Bulk import patients and create recalls"""
+    
+    def _import_task():
+        created_count = 0
+        error_count = 0
+        
+        for patient_data in import_req.patients:
+            try:
+                # Create or update patient
+                patient_insert = {
+                    "tenant_id": tenant_id,
+                    "first_name": patient_data["first_name"],
+                    "last_name": patient_data["last_name"],
+                    "phone": patient_data["phone"],
+                    "email": patient_data.get("email"),
+                    "external_id": patient_data.get("external_id"),
+                }
+                
+                patient_res = supabase.table("patients").upsert(patient_insert).execute()
+                patient = patient_res.data[0]
+                
+                # Create recall
+                due_date_str = patient_data.get("due_date")
+                if not due_date_str:
+                    # Calculate from last_appointment + interval
+                    last_apt = datetime.fromisoformat(patient_data.get("last_appointment"))
+                    due_date = last_apt.date() + timedelta(days=import_req.recall_interval_days)
+                else:
+                    due_date = datetime.fromisoformat(due_date_str).date()
+                
+                # Calculate first send time (using tenant timezone)
+                tenant_tz = get_tenant_timezone(tenant)
+                first_send_local = datetime.combine(due_date, datetime.min.time()).replace(tzinfo=tenant_tz, hour=9)
+                first_send_utc = first_send_local.astimezone(ZoneInfo("UTC"))
+                
+                recall_insert = {
+                    "tenant_id": tenant_id,
+                    "patient_id": patient["id"],
+                    "template_id": import_req.template_id,
+                    "recall_type": import_req.recall_type,
+                    "due_date": due_date.isoformat(),
+                    "status": "pending",
+                    "next_send_at": first_send_utc.isoformat(),
+                    "sequence_step": 0,
+                }
+                
+                supabase.table("recalls").insert(recall_insert).execute()
+                created_count += 1
+                
+            except Exception as e:
+                error_count += 1
+                logger.error(f"Bulk import error for patient {patient_data.get('phone')}: {e}")
+        
+        logger.info(f"Bulk import completed: {created_count} created, {error_count} errors")
+    
+    background_tasks.add_task(_import_task)
+    return {"message": f"Bulk import of {len(import_req.patients)} patients queued", "count": len(import_req.patients)}
+
+# -- Analytics --
 @app.get("/tenants/{tenant_id}/analytics")
-def get_analytics(tenant_id: str, tenant: dict = Depends(verify_tenant_auth), days: int = 30):
-    """Get analytics for tenant"""
+def get_analytics(
+    tenant_id: str,
+    tenant: dict = Depends(verify_tenant_auth),
+    days: int = 30
+):
+    """Get recall and SMS analytics for tenant"""
+    start_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    
     try:
-        # Get recall stats
-        stats_res = supabase.rpc("get_recall_stats", {"p_tenant_id": tenant_id, "p_days": days}).execute()
+        # Use the analytics function if it exists in Supabase
+        res = supabase.rpc("get_tenant_analytics", {
+            "tenant_id_param": tenant_id,
+            "start_date_param": start_date
+        }).execute()
         
-        # Get SMS stats
-        cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
-        sms_res = supabase.table("sms_messages").select("status").eq("tenant_id", tenant_id).gte(
-            "created_at", cutoff_date
-        ).execute()
-        
-        sms_stats = {
-            "sent": sum(1 for m in (sms_res.data or []) if m.get("status") == "sent"),
-            "delivered": sum(1 for m in (sms_res.data or []) if m.get("status") == "delivered"),
-            "failed": sum(1 for m in (sms_res.data or []) if m.get("status") in ["failed", "undelivered"]),
-        }
-        
-        # Get bookings and revenue
-        bookings_res = supabase.table("bookings").select("id, revenue_amount").eq("tenant_id", tenant_id).gte(
-            "created_at", cutoff_date
-        ).execute()
-        
-        bookings = bookings_res.data or []
-        revenue = sum(float(b.get("revenue_amount") or 0) for b in bookings)
-        
+        if res.data:
+            return res.data
+    except Exception as e:
+        logger.warning(f"Analytics function not available, using fallback: {e}")
+    
+    # Fallback: manual aggregation
+    recalls = supabase.table("recalls").select("*").eq("tenant_id", tenant_id).gte("created_at", start_date).execute()
+    sms = supabase.table("sms_messages").select("*").eq("tenant_id", tenant_id).gte("created_at", start_date).execute()
+    bookings = supabase.table("bookings").select("*").eq("tenant_id", tenant_id).gte("created_at", start_date).execute()
+    
+    recalls_data = recalls.data or []
+    sms_data = sms.data or []
+    bookings_data = bookings.data or []
+    
+    # Calculate stats
+    total_recalls = len(recalls_data)
+    status_counts = {}
+    for r in recalls_data:
+        status = r.get("status", "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+    
+    booked_count = status_counts.get("booked", 0)
+    conversion_rate = round((booked_count / total_recalls * 100), 1) if total_recalls > 0 else 0
+    
+    sms_sent = sum(1 for m in sms_data if m.get("status") == "sent")
+    sms_failed = sum(1 for m in sms_data if m.get("status") == "failed")
+    sms_delivered = sum(1 for m in sms_data if m.get("status") == "delivered")
+    
+    revenue_recovered = sum(b.get("revenue_amount", 0) for b in bookings_data)
+    
+    return {
+        "recall_stats": {
+            "total_recalls": total_recalls,
+            **status_counts,
+            "conversion_rate": conversion_rate
+        },
+        "sms_stats": {
+            "sent": sms_sent,
+            "delivered": sms_delivered,
+            "failed": sms_failed
+        },
+        "revenue_recovered": revenue_recovered,
+        "bookings_count": len(bookings_data),
+        "period_days": days
+    }
+
+# -- Cron Jobs --
+@app.post("/cron/process-recalls")
+@limiter.limit("10/minute")
+def cron_process_recalls(request: Request, x_api_key: str = Header(...)):
+    """
+    Cron endpoint: Process all due recalls
+    Call this hourly via Supabase cron or external scheduler
+    """
+    verify_api_key(x_api_key)
+    
+    try:
+        result = process_due_recalls()
         return {
-            "recall_stats": stats_res.data or {},
-            "sms_stats": sms_stats,
-            "revenue_recovered": revenue,
-            "bookings_count": len(bookings),
-            "period_days": days
+            "message": "Recall processing completed",
+            "timestamp": datetime.utcnow().isoformat(),
+            **result
         }
     except Exception as e:
-        logger.error(f"Analytics error: {e}")
-        raise HTTPException(500, f"Failed to fetch analytics: {str(e)}")
+        logger.error(f"Cron job failed: {e}")
+        raise HTTPException(500, f"Cron job failed: {str(e)}")
 
-# -- Cron Endpoint (ADMIN ONLY) --
-@app.post("/cron/process-recalls", dependencies=[Depends(verify_api_key)])
-def cron_process_recalls(background_tasks: BackgroundTasks):
-    """Trigger recall processing (called by cron)"""
-    background_tasks.add_task(process_due_recalls)
-    return {"message": "Recall processing started", "timestamp": datetime.utcnow().isoformat()}
-
-# -- Twilio Webhooks --
-@app.post("/webhooks/twilio/inbound", response_class=PlainTextResponse)
-async def twilio_inbound(request: Request):
+# -- Webhooks --
+@app.post("/webhooks/twilio/inbound")
+async def twilio_inbound_webhook(request: Request):
     """Handle inbound SMS from Twilio"""
-    url = str(request.url)
     form = await request.form()
-    signature = request.headers.get("X-Twilio-Signature", "")
     
-    # Validate Twilio signature in production
+    # Validate Twilio signature (only in production)
     if ENVIRONMENT == "production":
+        signature = request.headers.get("X-Twilio-Signature", "")
+        url = str(request.url)
+        
         if not twilio_validator.validate(url, dict(form), signature):
-            logger.warning(f"Invalid Twilio signature from {request.client.host}")
+            logger.warning("Invalid Twilio signature")
             raise HTTPException(403, "Invalid Twilio signature")
     
-    from_num = form.get("From", "")
-    to_num = form.get("To", "")
+    from_num = form.get("From")
+    to_num = form.get("To")
     body = form.get("Body", "")
-    sid = form.get("MessageSid", "")
+    sid = form.get("MessageSid")
     
-    logger.info(f"Inbound SMS from {from_num}: {body[:50]}")
+    # Handle the message
+    response_text = handle_inbound_sms(from_num, to_num, body, sid)
     
-    reply = handle_inbound_sms(from_num, to_num, body, sid)
-    
-    # Return TwiML
-    return f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{reply}</Message></Response>'
+    # Return TwiML response
+    return PlainTextResponse(
+        content=f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{response_text}</Message></Response>',
+        media_type="text/xml"
+    )
 
 @app.post("/webhooks/twilio/status")
-async def twilio_status(request: Request):
-    """Handle Twilio status callbacks"""
+async def twilio_status_webhook(request: Request):
+    """Handle SMS status callbacks from Twilio"""
     form = await request.form()
-    twilio_sid = form.get("MessageSid")
+    
+    sid = form.get("MessageSid")
     status = form.get("MessageStatus")
     error_code = form.get("ErrorCode")
     
-    if twilio_sid and status:
-        try:
-            supabase.table("sms_messages").update({
-                "status": status,
-                "error_code": error_code,
-                "status_updated_at": datetime.utcnow().isoformat(),
-            }).eq("twilio_sid", twilio_sid).execute()
-            logger.info(f"Updated SMS status: {twilio_sid} -> {status}")
-        except Exception as e:
-            logger.error(f"Failed to update SMS status: {e}")
+    # Update SMS log
+    try:
+        supabase.table("sms_messages").update({
+            "status": status,
+            "error_code": error_code,
+            "delivered_at": datetime.utcnow().isoformat() if status == "delivered" else None
+        }).eq("twilio_sid", sid).execute()
+        
+        logger.info(f"Updated SMS status: {sid} -> {status}")
+    except Exception as e:
+        logger.error(f"Failed to update SMS status: {e}")
     
-    return {"ok": True}
+    return {"status": "ok"}
 
-# ============================================================
-# MAIN
-# ============================================================
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
