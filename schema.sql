@@ -1,33 +1,4 @@
--- 1. Create the validation function FIRST
-CREATE OR REPLACE FUNCTION validate_message_sequence(sequence JSONB)
-RETURNS BOOLEAN AS $$
-DECLARE
-    item JSONB;
-    delay_days INTEGER;
-BEGIN
-    IF jsonb_typeof(sequence) != 'array' THEN
-        RETURN FALSE;
-    END IF;
-    
-    FOR item IN SELECT * FROM jsonb_array_elements(sequence)
-    LOOP
-        IF NOT (item ? 'delay_days' AND item ? 'message_template') THEN
-            RETURN FALSE;
-        END IF;
-        
-        IF jsonb_typeof(item->'delay_days') != 'number' OR
-           jsonb_typeof(item->'message_template') != 'string' THEN
-            RETURN FALSE;
-        END IF;
-    END LOOP;
-    
-    RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
-
-
-
--- ============================================================
+--- ============================================================
 -- RECALL SaaS — Production-Ready Multi-Tenant Schema
 -- Healthcare-Agnostic Recall Management System
 -- ============================================================
@@ -56,6 +27,49 @@ CREATE TABLE IF NOT EXISTS schema_version (
 INSERT INTO schema_version (id, version, description, checksum) 
 VALUES (1, '1.0.0', 'Initial production schema', md5('initial-schema-v1'))
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- VALIDATION FUNCTIONS (Must be defined before tables)
+-- ============================================================
+-- Validation function for message sequences
+CREATE OR REPLACE FUNCTION validate_message_sequence(sequence JSONB)
+RETURNS BOOLEAN AS $$
+DECLARE
+    item JSONB;
+    delay_days INTEGER;
+BEGIN
+    IF jsonb_typeof(sequence) != 'array' THEN
+        RETURN FALSE;
+    END IF;
+    
+    FOR item IN SELECT * FROM jsonb_array_elements(sequence)
+    LOOP
+        -- Check required fields
+        IF NOT (item ? 'delay_days' AND item ? 'message_template') THEN
+            RETURN FALSE;
+        END IF;
+        
+        -- Validate types
+        IF jsonb_typeof(item->'delay_days') NOT IN ('number', 'string') OR
+           jsonb_typeof(item->'message_template') != 'string' THEN
+            RETURN FALSE;
+        END IF;
+        
+        -- Safely cast and validate values
+        BEGIN
+            delay_days := (item->>'delay_days')::INTEGER;
+        EXCEPTION WHEN others THEN
+            RETURN FALSE;
+        END;
+        
+        IF delay_days < 0 OR delay_days > 365 THEN
+            RETURN FALSE;
+        END IF;
+    END LOOP;
+    
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 -- ============================================================
 -- ENUM TYPES (Better than text fields)
@@ -146,7 +160,7 @@ CREATE TABLE tenants (
     
     -- Constraints
     CONSTRAINT valid_phone CHECK (phone_number ~ '^\+[1-9]\d{1,14}$'),
-    CONSTRAINT valid_api_key CHECK (api_key ~ '^[A-Za-z0-9_-]{32,64}$'),
+    CONSTRAINT valid_api_key CHECK (api_key IS NULL OR api_key ~ '^[A-Za-z0-9_-]{32,64}$'),
     CONSTRAINT valid_business_hours CHECK (jsonb_typeof(business_hours) = 'object'),
     CONSTRAINT valid_limits CHECK (jsonb_typeof(limits) = 'object'),
     CONSTRAINT valid_settings CHECK (jsonb_typeof(settings) = 'object')
@@ -193,13 +207,14 @@ CREATE TABLE recall_templates (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT valid_message_sequence CHECK (validate_message_sequence(message_sequence)),
-    CONSTRAINT unique_template_name UNIQUE NULLS NOT DISTINCT (tenant_id, name)
+    CONSTRAINT valid_message_sequence CHECK (validate_message_sequence(message_sequence))
 );
 
+-- Safely enforce uniqueness treating NULL tenant_id as a global template
+CREATE UNIQUE INDEX uniq_recall_templates_tenant_name 
+ON recall_templates (COALESCE(tenant_id::text, '00000000-0000-0000-0000-000000000000'), name);
+
 COMMENT ON TABLE recall_templates IS 'Recall templates with message sequences';
-COMMENT ON COLUMN recall_templates.message_sequence IS 'Array of {delay_days, message_template, required_fields}';
-COMMENT ON COLUMN recall_templates.conditions IS 'JSON conditions for template applicability (age, gender, last_visit, etc.)';
 
 -- ============================================================
 -- PATIENTS / CLIENTS
@@ -265,10 +280,6 @@ CREATE INDEX idx_patients_dob ON patients(tenant_id, date_of_birth) WHERE date_o
 CREATE INDEX idx_patients_last_appointment ON patients(tenant_id, last_appointment_at DESC);
 CREATE INDEX idx_patients_metadata_gin ON patients USING GIN (metadata);
 
-COMMENT ON TABLE patients IS 'Patient/client information per tenant';
-COMMENT ON COLUMN patients.communication_preferences IS 'JSON containing communication preferences and DND settings';
-COMMENT ON COLUMN patients.metadata IS 'Flexible fields for specialty-specific data (pet_name, provider_preferences, etc.)';
-
 -- ============================================================
 -- RECALL RECORDS (Core Engine)
 -- ============================================================
@@ -319,23 +330,19 @@ CREATE TABLE recalls (
     
     -- Constraints
     CONSTRAINT valid_due_date CHECK (due_date >= created_at::DATE),
-    CONSTRAINT valid_snooze CHECK (snoozed_until IS NULL OR snoozed_until > CURRENT_DATE),
+    CONSTRAINT valid_snooze CHECK (snoozed_until IS NULL OR snoozed_until >= created_at::DATE),
     CONSTRAINT valid_next_send CHECK (
         (status IN ('pending', 'in_progress') AND next_send_at IS NOT NULL) OR
         (status NOT IN ('pending', 'in_progress') AND next_send_at IS NULL)
     )
 );
 
--- Optimized indexes for recall processing
-CREATE INDEX idx_recalls_pending ON recalls(tenant_id, next_send_at) 
-    WHERE status IN ('pending', 'in_progress') AND next_send_at <= NOW();
+-- Optimized indexes for recall processing (Removed NOW() predicate to satisfy Postgres rules)
+CREATE INDEX idx_recalls_pending ON recalls(tenant_id, next_send_at) WHERE status IN ('pending', 'in_progress');
 CREATE INDEX idx_recalls_due_date ON recalls(tenant_id, due_date) WHERE status NOT IN ('booked', 'completed', 'cancelled');
 CREATE INDEX idx_recalls_patient_status ON recalls(patient_id, status);
 CREATE INDEX idx_recalls_metadata_gin ON recalls USING GIN (metadata);
 CREATE INDEX idx_recalls_booking ON recalls(booking_id) WHERE booking_id IS NOT NULL;
-
-COMMENT ON TABLE recalls IS 'Core recall tracking engine';
-COMMENT ON COLUMN recalls.booking_link_expires_at IS 'Expiration timestamp for booking link security';
 
 -- ============================================================
 -- SMS MESSAGES LOG
@@ -385,14 +392,10 @@ CREATE TABLE sms_messages (
     )
 );
 
--- Partition by creation date for better performance
 CREATE INDEX idx_sms_messages_tenant_date ON sms_messages(tenant_id, created_at DESC);
 CREATE INDEX idx_sms_messages_recall ON sms_messages(recall_id);
 CREATE INDEX idx_sms_messages_sid ON sms_messages(message_sid) WHERE message_sid IS NOT NULL;
 CREATE INDEX idx_sms_messages_status ON sms_messages(status, created_at) WHERE status NOT IN ('delivered', 'failed');
-
-COMMENT ON TABLE sms_messages IS 'SMS message log with full delivery tracking';
-COMMENT ON COLUMN sms_messages.status_history IS 'Array of status change events with timestamps';
 
 -- ============================================================
 -- INBOUND RESPONSES
@@ -429,13 +432,10 @@ CREATE TABLE inbound_responses (
     received_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_inbound_responses_unprocessed ON inbound_responses(tenant_id, received_at) 
-    WHERE processed = FALSE;
+CREATE INDEX idx_inbound_responses_unprocessed ON inbound_responses(tenant_id, received_at) WHERE processed = FALSE;
 CREATE INDEX idx_inbound_responses_patient ON inbound_responses(patient_id, received_at DESC);
 CREATE INDEX idx_inbound_responses_phone ON inbound_responses(from_number, received_at DESC);
 CREATE INDEX idx_inbound_responses_intent ON inbound_responses(intent) WHERE intent IS NOT NULL;
-
-COMMENT ON TABLE inbound_responses IS 'Inbound SMS responses with intent analysis';
 
 -- ============================================================
 -- BOOKINGS
@@ -483,8 +483,6 @@ CREATE INDEX idx_bookings_patient ON bookings(patient_id, appointment_time DESC)
 CREATE INDEX idx_bookings_status ON bookings(status, appointment_time) WHERE status = 'confirmed';
 CREATE INDEX idx_bookings_external ON bookings(external_booking_id) WHERE external_booking_id IS NOT NULL;
 
-COMMENT ON TABLE bookings IS 'Booking records from recall campaigns';
-
 -- ============================================================
 -- WEBHOOK EVENTS
 -- ============================================================
@@ -518,8 +516,7 @@ CREATE TABLE webhook_events (
     received_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_webhook_events_unprocessed ON webhook_events(tenant_id, received_at) 
-    WHERE processed = FALSE;
+CREATE INDEX idx_webhook_events_unprocessed ON webhook_events(tenant_id, received_at) WHERE processed = FALSE;
 CREATE INDEX idx_webhook_events_source ON webhook_events(source, event_type, received_at DESC);
 CREATE INDEX idx_webhook_events_event_id ON webhook_events(event_id) WHERE event_id IS NOT NULL;
 
@@ -554,8 +551,6 @@ CREATE TABLE audit_log (
 CREATE INDEX idx_audit_log_tenant_time ON audit_log(tenant_id, created_at DESC);
 CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id, created_at DESC);
 CREATE INDEX idx_audit_log_user ON audit_log(user_id, created_at DESC) WHERE user_id IS NOT NULL;
-
-COMMENT ON TABLE audit_log IS 'Compliance audit trail for all sensitive operations';
 
 -- ============================================================
 -- ANALYTICS SNAPSHOTS
@@ -613,69 +608,44 @@ CREATE INDEX idx_analytics_tenant_date ON analytics_daily(tenant_id, date DESC);
 -- FUNCTIONS AND TRIGGERS
 -- ============================================================
 
--- Validation function for message sequences
-CREATE OR REPLACE FUNCTION validate_message_sequence(sequence JSONB)
-RETURNS BOOLEAN AS $$
-DECLARE
-    item JSONB;
-    delay_days INTEGER;
-BEGIN
-    IF jsonb_typeof(sequence) != 'array' THEN
-        RETURN FALSE;
-    END IF;
-    
-    FOR item IN SELECT * FROM jsonb_array_elements(sequence)
-    LOOP
-        -- Check required fields
-        IF NOT (item ? 'delay_days' AND item ? 'message_template') THEN
-            RETURN FALSE;
-        END IF;
-        
-        -- Validate types
-        IF jsonb_typeof(item->'delay_days') != 'number' OR
-           jsonb_typeof(item->'message_template') != 'string' THEN
-            RETURN FALSE;
-        END IF;
-        
-        -- Validate values
-        delay_days := (item->>'delay_days')::INTEGER;
-        IF delay_days < 0 OR delay_days > 365 THEN
-            RETURN FALSE;
-        END IF;
-    END LOOP;
-    
-    RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
-
--- Update tenant usage statistics
+-- Update tenant usage statistics (Safely handles OLD/NEW row contexts on DELETEs)
 CREATE OR REPLACE FUNCTION update_tenant_usage()
 RETURNS TRIGGER AS $$
 DECLARE
-    month_start DATE;
+    month_start TIMESTAMPTZ;
+    t_id UUID := COALESCE(NEW.tenant_id, OLD.tenant_id);
 BEGIN
-    month_start := DATE_TRUNC('month', CURRENT_DATE);
+    IF t_id IS NULL THEN RETURN NULL; END IF;
+    month_start := date_trunc('month', now());
     
     UPDATE tenants 
     SET current_usage = jsonb_build_object(
-        'patient_count', (SELECT COUNT(*) FROM patients WHERE tenant_id = NEW.tenant_id),
-        'recalls_this_month', (SELECT COUNT(*) FROM recalls WHERE tenant_id = NEW.tenant_id AND created_at >= month_start),
-        'sms_this_month', (SELECT COUNT(*) FROM sms_messages WHERE tenant_id = NEW.tenant_id AND created_at >= month_start),
-        'bookings_this_month', (SELECT COUNT(*) FROM bookings WHERE tenant_id = NEW.tenant_id AND created_at >= month_start)
+        'patient_count', (SELECT COUNT(*) FROM patients WHERE tenant_id = t_id),
+        'recalls_this_month', (SELECT COUNT(*) FROM recalls WHERE tenant_id = t_id AND created_at >= month_start),
+        'sms_this_month', (SELECT COUNT(*) FROM sms_messages WHERE tenant_id = t_id AND created_at >= month_start),
+        'bookings_this_month', (SELECT COUNT(*) FROM bookings WHERE tenant_id = t_id AND created_at >= month_start)
     )
-    WHERE id = NEW.tenant_id;
+    WHERE id = t_id;
     
-    RETURN NEW;
+    RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for usage updates
+-- Comprehensive triggers for usage updates across all tables affecting usage
 CREATE TRIGGER trg_update_tenant_usage_patients
     AFTER INSERT OR DELETE ON patients
     FOR EACH ROW EXECUTE FUNCTION update_tenant_usage();
 
 CREATE TRIGGER trg_update_tenant_usage_recalls
     AFTER INSERT OR DELETE ON recalls
+    FOR EACH ROW EXECUTE FUNCTION update_tenant_usage();
+
+CREATE TRIGGER trg_update_tenant_usage_sms
+    AFTER INSERT OR DELETE ON sms_messages
+    FOR EACH ROW EXECUTE FUNCTION update_tenant_usage();
+    
+CREATE TRIGGER trg_update_tenant_usage_bookings
+    AFTER INSERT OR DELETE ON bookings
     FOR EACH ROW EXECUTE FUNCTION update_tenant_usage();
 
 -- Function to check tenant limits
@@ -749,23 +719,19 @@ CREATE TRIGGER trg_analytics_updated BEFORE UPDATE ON analytics_daily FOR EACH R
 -- INDEXES (Performance Optimizations)
 -- ============================================================
 
--- Composite indexes for common query patterns
-CREATE INDEX idx_recalls_tenant_status_composite ON recalls(tenant_id, status, next_send_at) 
-    WHERE status IN ('pending', 'in_progress');
+-- First, create an IMMUTABLE helper function for the full-text search index
+CREATE OR REPLACE FUNCTION patients_search_vector(first_name TEXT, last_name TEXT, preferred_name TEXT)
+RETURNS tsvector AS $$
+BEGIN
+  RETURN to_tsvector('english', coalesce(first_name, '') || ' ' || coalesce(last_name, '') || ' ' || coalesce(preferred_name, ''));
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
-CREATE INDEX idx_patients_tenant_opt_out ON patients(tenant_id, opted_out, last_contact_at) 
-    WHERE opted_out = FALSE;
+-- Now create the index using that function
+CREATE INDEX idx_patients_name_search ON patients USING GIN (patients_search_vector(first_name, last_name, preferred_name));
 
-CREATE INDEX idx_sms_messages_delivery_tracking ON sms_messages(tenant_id, status, created_at)
-    WHERE status IN ('queued', 'sent');
-
--- Full-text search indexes
-CREATE INDEX idx_patients_name_search ON patients USING GIN (
-    to_tsvector('english', coalesce(first_name, '') || ' ' || coalesce(last_name, '') || ' ' || coalesce(preferred_name, ''))
-);
-
--- JSONB path indexes for common queries
-CREATE INDEX idx_tenants_twilio_config ON tenants USING GIN ((twilio_config->'sid'));
+-- Safe JSONB path indexes for common queries
+CREATE INDEX idx_tenants_twilio_sid ON tenants ((twilio_config->>'sid'));
 CREATE INDEX idx_patients_communication ON patients USING GIN (communication_preferences);
 CREATE INDEX idx_recalls_metadata_path ON recalls USING GIN (metadata jsonb_path_ops);
 
@@ -783,26 +749,23 @@ ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 
--- Tenant isolation policy
+-- Tenant isolation policies safely cast and check for NULL values via 'true'
 CREATE POLICY tenant_isolation_policy ON tenants
-    USING (id = current_setting('app.current_tenant')::UUID);
+    FOR ALL TO authenticated
+    USING (id = current_setting('app.current_tenant', true)::UUID);
 
 CREATE POLICY patient_isolation_policy ON patients
-    USING (tenant_id = current_setting('app.current_tenant')::UUID);
+    FOR ALL TO authenticated
+    USING (tenant_id = current_setting('app.current_tenant', true)::UUID);
 
 CREATE POLICY recall_isolation_policy ON recalls
-    USING (tenant_id = current_setting('app.current_tenant')::UUID);
+    FOR ALL TO authenticated
+    USING (tenant_id = current_setting('app.current_tenant', true)::UUID);
 
--- Service role bypass (for backend)
+-- Service role bypass checking JWT claims safely
 CREATE POLICY service_role_all_access ON tenants
-    USING (current_user = 'service_role');
-
--- ============================================================
--- INITIAL DATA
--- ============================================================
-
--- Insert default templates (as shown in original schema)
--- [Keep your existing INSERT statements]
+    FOR ALL TO authenticated
+    USING (current_setting('jwt.claims.role', true) = 'service_role');
 
 -- ============================================================
 -- MAINTENANCE FUNCTIONS
@@ -812,25 +775,27 @@ CREATE POLICY service_role_all_access ON tenants
 CREATE OR REPLACE FUNCTION cleanup_old_data(retain_days INTEGER DEFAULT 90)
 RETURNS INTEGER AS $$
 DECLARE
-    deleted_count INTEGER;
+    deleted_count INTEGER := 0;
+    tmp INTEGER;
 BEGIN
     -- Archive old webhook events
     DELETE FROM webhook_events 
-    WHERE created_at < NOW() - (retain_days || ' days')::INTERVAL
+    WHERE received_at < NOW() - (retain_days || ' days')::INTERVAL
     AND processed = TRUE;
-    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    
+    GET DIAGNOSTICS tmp = ROW_COUNT;
+    deleted_count := deleted_count + tmp;
     
     -- Archive old audit log entries
     DELETE FROM audit_log 
     WHERE created_at < NOW() - (retain_days || ' days')::INTERVAL;
     
+    GET DIAGNOSTICS tmp = ROW_COUNT;
+    deleted_count := deleted_count + tmp;
+    
     RETURN deleted_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Schedule maintenance job (requires pg_cron extension)
--- CREATE EXTENSION IF NOT EXISTS pg_cron;
--- SELECT cron.schedule('cleanup-job', '0 2 * * *', 'SELECT cleanup_old_data(90);');
 
 -- ============================================================
 -- COMMENTS AND DOCUMENTATION
@@ -838,10 +803,3 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON SCHEMA public IS 'RECALL SaaS - Healthcare Recall Management System';
 COMMENT ON DATABASE postgres IS 'Multi-tenant recall management database for healthcare practices';
- 
-
--- Add documentation for complex functions
-COMMENT ON FUNCTION validate_message_sequence(JSONB) IS 'Validates message sequence JSON structure and values';
-COMMENT ON FUNCTION check_tenant_limits(UUID, TEXT) IS 'Checks if tenant has capacity for requested resource';
-COMMENT ON FUNCTION get_recall_stats(UUID, INTEGER) IS 'Returns recall statistics breakdown with percentages';
-COMMENT ON FUNCTION get_recall_stats(UUID, INTEGER) IS 'Returns recall statistics breakdown with percentages';
