@@ -809,7 +809,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON SCHEMA public IS 'RECALL SaaS - Healthcare Recall Management System';
 COMMENT ON DATABASE postgres IS 'Multi-tenant recall management database for healthcare practices';
-💡 
 
 -- Add documentation for complex functions
 COMMENT ON FUNCTION validate_message_sequence(JSONB) IS 'Validates message sequence JSON structure and values';
