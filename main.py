@@ -476,6 +476,13 @@ async def serve_landing():
         return FileResponse('website/recall.html')
     return {"service": "Recall SaaS API", "version": "2.0.0", "status": "operational"}
 
+@app.get("/compliance")
+async def serve_compliance():
+    """Serves the Twilio Compliance Intake Form"""
+    if os.path.exists("website/compliance.html"):
+        return FileResponse('website/compliance.html')
+    return {"status": "Compliance page missing"}
+
 @app.get("/health")
 def health_check():
     health_status = {
