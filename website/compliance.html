@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Patient Intake Form | Recall Compliance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="p-8 flex items-center justify-center min-h-screen">
+
+    <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
+        <div class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Twilio Compliance Verification</div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Sample Clinic Intake Form</h1>
+        <p class="text-sm text-gray-500 mb-6">
+            This is a sample representation of the patient intake form that our clinic partners use to collect TCPA-compliant SMS consent before utilizing the Recall engine.
+        </p>
+
+        <form class="space-y-4 border-t pt-6" onsubmit="event.preventDefault();">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Patient Full Name</label>
+                <input type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50" disabled value="John Doe">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Mobile Phone Number</label>
+                <input type="tel" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50" disabled value="(555) 123-4567">
+            </div>
+
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-6">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="sms_consent" name="sms_consent" type="checkbox" checked disabled class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="sms_consent" class="font-bold text-gray-900">SMS Appointment Reminders</label>
+                        <p class="text-gray-700 mt-1">
+                            I agree to receive text messages from my healthcare provider regarding appointment reminders, recall notices, and scheduling. Message frequency varies. <strong>Msg & Data rates may apply.</strong> Reply STOP to cancel. Reply HELP for assistance.
+                        </p>
+                        <p class="text-xs text-gray-500 mt-2">
+                            By checking this box, you agree to our <a href="#" class="text-blue-600 underline">Terms of Service</a> and <a href="#" class="text-blue-600 underline">Privacy Policy</a>. Consent is not a condition of purchase.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed mt-4">
+                Submit Patient Intake
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>
