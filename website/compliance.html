@@ -133,22 +133,21 @@
         // INITIALIZATION
         // ============================================================
         
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Validate required parameters
-            if (!tenantId || !patientId) {
-                showError('Invalid consent link. Please contact your healthcare provider for a new link.');
-                return;
-            }
-            
-            // Set clinic name
-            document.getElementById('clinic-name').textContent = decodeURIComponent(clinicName);
-            document.getElementById('consent-version').textContent = CONSENT_VERSION;
-            
-            // Fetch user IP
-            await fetchUserIP();
-            
-            // Setup event listeners
-            setupEventListeners();
+      ocument.addEventListener('DOMContentLoaded', async () => {
+    // 1. Set UI text immediately so the patient sees a finished page
+    document.getElementById('clinic-name').textContent = decodeURIComponent(clinicName);
+    document.getElementById('consent-version').textContent = CONSENT_VERSION;
+    
+    // 2. Setup button listeners IMMEDIATELY (Crucial for unblocking)
+    // This makes the "Submit" button listen for the checkbox right now.
+    setupEventListeners();
+
+    // 3. Fire the IP fetch in the background. 
+    // We DO NOT 'await' it here. This lets the script finish 
+    // so the page is 100% interactive instantly.
+    fetchUserIP(); 
+
+    
         });
         
         // ============================================================
