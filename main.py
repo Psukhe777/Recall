@@ -483,6 +483,13 @@ async def serve_compliance():
         return FileResponse('website/compliance.html')
     return {"status": "Compliance page missing"}
 
+@app.get("/privacy-policy")
+async def serve_privacypolicy():
+    "serves as privacy policy page"
+    if os.path.exists("website/privacy-policy.html"):
+        return FileResponse('website/privacy-policy.html')
+        return {"status": "Privacy page missing"}
+        
 @app.get("/health")
 def health_check():
     health_status = {
