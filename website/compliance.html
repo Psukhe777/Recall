@@ -3,54 +3,394 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sample Patient Intake Form | Recall Compliance</title>
+    <title>Patient Intake Form - SMS Consent</title>
+    
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { 
+            background-color: #f3f4f6; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .success-checkmark {
+            animation: scaleIn 0.3s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="p-8 flex items-center justify-center min-h-screen">
-
-    <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
-        <div class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Twilio Compliance Verification</div>
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">Sample Clinic Intake Form</h1>
-        <p class="text-sm text-gray-500 mb-6">
-            This is a sample representation of the patient intake form that our clinic partners use to collect TCPA-compliant SMS consent before utilizing the Recall engine.
+ 
+    <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg" id="consent-container">
+        <!-- Header -->
+        <div class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">
+            <span id="header-label">Patient Registration</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2" id="clinic-name">Loading...</h1>
+        <p class="text-sm text-gray-500 mb-6" id="form-description">
+            Please review and provide your consent for SMS appointment reminders.
         </p>
-
-        <form class="space-y-4 border-t pt-6" onsubmit="event.preventDefault();">
+ 
+        <!-- Main Form -->
+        <form class="space-y-4 border-t pt-6" id="consent-form" onsubmit="return false;">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Patient Full Name</label>
-                <input type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50" disabled value="John Doe">
+                <input type="text" id="patient-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="John Doe" required>
             </div>
             
             <div>
                 <label class="block text-sm font-medium text-gray-700">Mobile Phone Number</label>
-                <input type="tel" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50" disabled value="(555) 123-4567">
+                <input type="tel" id="patient-phone" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="(555) 123-4567" required>
             </div>
-
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email Address (Optional)</label>
+                <input type="email" id="patient-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="john.doe@example.com">
+            </div>
+ 
+            <!-- TCPA-Compliant Consent Checkbox -->
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-6">
                 <div class="flex items-start">
                     <div class="flex items-center h-5">
-                        <input id="sms_consent" name="sms_consent" type="checkbox" checked disabled class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                        <input id="sms-consent" name="sms_consent" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded cursor-pointer">
                     </div>
                     <div class="ml-3 text-sm">
-                        <label for="sms_consent" class="font-bold text-gray-900">SMS Appointment Reminders</label>
+                        <label for="sms-consent" class="font-bold text-gray-900 cursor-pointer">SMS Appointment Reminders</label>
                         <p class="text-gray-700 mt-1">
                             I agree to receive text messages from my healthcare provider regarding appointment reminders, recall notices, and scheduling. Message frequency varies. <strong>Msg & Data rates may apply.</strong> Reply STOP to cancel. Reply HELP for assistance.
                         </p>
                         <p class="text-xs text-gray-500 mt-2">
-                            By checking this box, you agree to our <a href="#" class="text-blue-600 underline">Terms of Service</a> and <a href="#" class="text-blue-600 underline">Privacy Policy</a>. Consent is not a condition of purchase.
+                            By checking this box, you agree to our <a href="#" class="text-blue-600 underline">Terms of Service</a> and <a href="#" class="text-blue-600 underline">Privacy Policy</a>. Consent is not a condition of purchase or receiving care.
                         </p>
                     </div>
                 </div>
             </div>
-
-            <button type="button" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed mt-4">
-                Submit Patient Intake
-            </button>
+ 
+            <!-- Legal Notice -->
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mt-4">
+                <p class="text-xs text-gray-600">
+                    <strong>Legal Notice:</strong> This consent is version <span id="consent-version">v1.0-2024-03</span> and will be recorded with your IP address (<code class="bg-gray-200 px-1 rounded" id="display-ip">loading...</code>) for compliance purposes. This record cannot be modified after submission.
+                </p>
+            </div>
+ 
+            <!-- Action Buttons -->
+            <div class="flex gap-3 mt-6">
+                <button type="button" id="decline-btn" class="flex-1 justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Decline
+                </button>
+                <button type="submit" id="submit-btn" class="flex-1 justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Submit Consent
+                </button>
+            </div>
         </form>
     </div>
-
+ 
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        
+        // Configure Supabase (replace with your actual credentials)
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Extract URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const tenantId = urlParams.get('tenant_id');
+        const patientId = urlParams.get('patient_id');
+        const clinicName = urlParams.get('clinic_name') || 'Your Healthcare Provider';
+        
+        // Consent configuration
+        const CONSENT_VERSION = 'v1.0-2024-03';
+        const CONSENT_TEXT = `I agree to receive text messages from my healthcare provider regarding appointment reminders, recall notices, and scheduling. Message frequency varies. Msg & Data rates may apply. Reply STOP to cancel. Reply HELP for assistance. By checking this box, you agree to our Terms of Service and Privacy Policy. Consent is not a condition of purchase or receiving care.`;
+        
+        let userIP = null;
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Validate required parameters
+            if (!tenantId || !patientId) {
+                showError('Invalid consent link. Please contact your healthcare provider for a new link.');
+                return;
+            }
+            
+            // Set clinic name
+            document.getElementById('clinic-name').textContent = decodeURIComponent(clinicName);
+            document.getElementById('consent-version').textContent = CONSENT_VERSION;
+            
+            // Fetch user IP
+            await fetchUserIP();
+            
+            // Setup event listeners
+            setupEventListeners();
+        });
+        
+        // ============================================================
+        // IP ADDRESS CAPTURE
+        // ============================================================
+        
+        async function fetchUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                userIP = data.ip;
+                document.getElementById('display-ip').textContent = userIP;
+            } catch (err) {
+                console.error('Failed to fetch IP:', err);
+                userIP = '0.0.0.0';
+                document.getElementById('display-ip').textContent = 'unavailable';
+            }
+        }
+        
+        // ============================================================
+        // EVENT LISTENERS
+        // ============================================================
+        
+        function setupEventListeners() {
+            const consentCheckbox = document.getElementById('sms-consent');
+            const submitBtn = document.getElementById('submit-btn');
+            const declineBtn = document.getElementById('decline-btn');
+            const form = document.getElementById('consent-form');
+            
+            // Enable submit button when checkbox is checked and form is valid
+            consentCheckbox.addEventListener('change', () => {
+                submitBtn.disabled = !consentCheckbox.checked;
+            });
+            
+            // Handle form submission (consent accepted)
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (!consentCheckbox.checked) {
+                    alert('Please check the consent box to continue.');
+                    return;
+                }
+                
+                // Validate form
+                const name = document.getElementById('patient-name').value.trim();
+                const phone = document.getElementById('patient-phone').value.trim();
+                
+                if (!name || !phone) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Disable submit button and show loading
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="loading-spinner mr-2"></span> Recording...';
+                
+                try {
+                    // Record consent to Supabase
+                    await recordConsent(true, name, phone);
+                    
+                    // Show success view
+                    showSuccess();
+                    
+                } catch (err) {
+                    console.error('Consent error:', err);
+                    alert('Failed to record consent. Please try again or contact the clinic.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Consent';
+                }
+            });
+            
+            // Handle decline
+            declineBtn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to decline SMS appointment reminders? You can still receive care and book appointments through other methods.')) {
+                    try {
+                        declineBtn.disabled = true;
+                        declineBtn.textContent = 'Recording...';
+                        
+                        const name = document.getElementById('patient-name').value.trim() || 'Declined';
+                        const phone = document.getElementById('patient-phone').value.trim() || 'N/A';
+                        
+                        await recordConsent(false, name, phone);
+                        showDecline();
+                    } catch (err) {
+                        console.error('Decline error:', err);
+                        showDecline(); // Show decline view anyway
+                    }
+                }
+            });
+        }
+        
+        // ============================================================
+        // CONSENT RECORDING
+        // ============================================================
+        
+        async function recordConsent(consentGiven, name, phone) {
+            const email = document.getElementById('patient-email').value.trim();
+            
+            const { data, error } = await supabase.rpc('record_consent', {
+                p_tenant_id: tenantId,
+                p_patient_id: patientId,
+                p_consent_type: 'sms',
+                p_consent_given: consentGiven,
+                p_consent_version: CONSENT_VERSION,
+                p_consent_text: CONSENT_TEXT,
+                p_ip_address: userIP || '0.0.0.0',
+                p_user_agent: navigator.userAgent,
+                p_consent_method: 'web_form',
+                p_consent_source: window.location.href,
+                p_metadata: {
+                    browser: navigator.userAgent,
+                    screen_resolution: `${window.screen.width}x${window.screen.height}`,
+                    language: navigator.language,
+                    page: 'patient_intake_form',
+                    clinic_name: clinicName,
+                    patient_name: name,
+                    patient_phone: phone,
+                    patient_email: email || null
+                }
+            });
+            
+            if (error) {
+                console.error('Consent recording error:', error);
+                throw error;
+            }
+            
+            console.log('Consent recorded with ID:', data);
+            
+            // Store in localStorage for reference
+            try {
+                localStorage.setItem(`consent_${patientId}`, JSON.stringify({
+                    consent_id: data,
+                    consent_given: consentGiven,
+                    recorded_at: new Date().toISOString(),
+                    ip_address: userIP,
+                    name: name,
+                    phone: phone
+                }));
+            } catch (e) {
+                // localStorage may not be available
+            }
+            
+            return data;
+        }
+        
+        // ============================================================
+        // UI STATE CHANGES
+        // ============================================================
+        
+        function showSuccess() {
+            const container = document.getElementById('consent-container');
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 success-checkmark">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Consent Recorded Successfully</h2>
+                    <p class="text-gray-600 mb-4">
+                        Thank you for providing consent. You will now receive SMS appointment reminders from ${decodeURIComponent(clinicName)}.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-left">
+                        <p class="font-semibold text-gray-900 mb-2">What happens next:</p>
+                        <ul class="space-y-1 text-gray-700">
+                            <li>✓ You'll receive appointment reminder texts</li>
+                            <li>✓ Recall notices for check-ups will be sent via SMS</li>
+                            <li>✓ Reply STOP anytime to opt out</li>
+                            <li>✓ Reply HELP for assistance</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="text-xs text-gray-600">
+                            <strong>Confirmation Details</strong><br>
+                            IP Address: <code class="bg-gray-200 px-1 rounded">${userIP}</code><br>
+                            Recorded: ${new Date().toLocaleString()}<br>
+                            Version: ${CONSENT_VERSION}
+                        </p>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mt-4">
+                        You can now close this window.
+                    </p>
+                </div>
+            `;
+        }
+        
+        function showDecline() {
+            const container = document.getElementById('consent-container');
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Consent Declined</h2>
+                    <p class="text-gray-600 mb-4">
+                        You have opted out of SMS appointment reminders from ${decodeURIComponent(clinicName)}.
+                    </p>
+                    
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-sm text-left">
+                        <p class="font-semibold text-gray-900 mb-2">What this means:</p>
+                        <ul class="space-y-1 text-gray-700">
+                            <li>• You will NOT receive text message reminders</li>
+                            <li>• You can still receive care and book appointments</li>
+                            <li>• Contact the clinic directly to schedule</li>
+                            <li>• You can change your mind later by contacting ${decodeURIComponent(clinicName)}</li>
+                        </ul>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mt-6">
+                        You can now close this window.
+                    </p>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            const container = document.getElementById('consent-container');
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Error</h2>
+                    <p class="text-gray-600 mb-4">${message}</p>
+                    
+                    <p class="text-sm text-gray-500">
+                        Please contact ${decodeURIComponent(clinicName)} for assistance.
+                    </p>
+                </div>
+            `;
+        }
+    </script>
+ 
 </body>
 </html>
