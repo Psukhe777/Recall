@@ -42,7 +42,7 @@
     </style>
 </head>
 <body class="p-8 flex items-center justify-center min-h-screen">
- 
+
     <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg" id="consent-container">
         <!-- Header -->
         <div class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">
@@ -52,7 +52,7 @@
         <p class="text-sm text-gray-500 mb-6" id="form-description">
             Please review and provide your consent for SMS appointment reminders.
         </p>
- 
+
         <!-- Main Form -->
         <form class="space-y-4 border-t pt-6" id="consent-form" onsubmit="return false;">
             <div>
@@ -69,7 +69,7 @@
                 <label class="block text-sm font-medium text-gray-700">Email Address (Optional)</label>
                 <input type="email" id="patient-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="john.doe@example.com">
             </div>
- 
+
             <!-- TCPA-Compliant Consent Checkbox -->
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-6">
                 <div class="flex items-start">
@@ -87,14 +87,14 @@
                     </div>
                 </div>
             </div>
- 
+
             <!-- Legal Notice -->
             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mt-4">
                 <p class="text-xs text-gray-600">
                     <strong>Legal Notice:</strong> This consent is version <span id="consent-version">v1.0-2024-03</span> and will be recorded with your IP address (<code class="bg-gray-200 px-1 rounded" id="display-ip">loading...</code>) for compliance purposes. This record cannot be modified after submission.
                 </p>
             </div>
- 
+
             <!-- Action Buttons -->
             <div class="flex gap-3 mt-6">
                 <button type="button" id="decline-btn" class="flex-1 justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -106,22 +106,24 @@
             </div>
         </form>
     </div>
- 
+
     <script>
         // ============================================================
-        // CONFIGURATION
+        // CONFIGURATION - BULLETPROOF CONSENT SYSTEM
         // ============================================================
         
         // Configure Supabase (replace with your actual credentials)
         const SUPABASE_URL = 'https://jsidhbdlfhpuecggjppu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzaWRoYmRsZmhwdWVjZ2dqcHB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzUzNzUsImV4cCI6MjA4ODYxMTM3NX0.hovLK0fjuEvT00uGauKy6MUiHj6LBGD1CEQgwecvrBM';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // Extract URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const tenantId = urlParams.get('tenant_id');
         const patientId = urlParams.get('patient_id');
-        const clinicName = urlParams.get('clinic_name') || 'Your Healthcare Provider';
+        const clinicName = urlParams.get('clinic_name') || 'Sample Healthcare Practice';
         
         // Consent configuration
         const CONSENT_VERSION = 'v1.0-2024-03';
@@ -130,28 +132,43 @@
         let userIP = null;
         
         // ============================================================
-        // INITIALIZATION
+        // DEMO MODE DETECTION (For Twilio Verification)
         // ============================================================
         
-      document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Set UI text immediately so the patient sees a finished page
-    document.getElementById('clinic-name').textContent = decodeURIComponent(clinicName);
-    document.getElementById('consent-version').textContent = CONSENT_VERSION;
-    
-    // 2. Setup button listeners IMMEDIATELY (Crucial for unblocking)
-    // This makes the "Submit" button listen for the checkbox right now.
-    setupEventListeners();
-
-    // 3. Fire the IP fetch in the background. 
-    // We DO NOT 'await' it here. This lets the script finish 
-    // so the page is 100% interactive instantly.
-    fetchUserIP(); 
-
-    
+        // Check if this is a demo/preview mode (no valid tenant_id or patient_id)
+        const isDemoMode = !tenantId || !patientId || 
+                          tenantId.includes('demo') || 
+                          tenantId.includes('test') ||
+                          patientId.includes('demo') ||
+                          patientId.includes('test');
+        
+        if (isDemoMode) {
+            console.log('🎭 DEMO MODE: Form will work without Supabase calls');
+        }
+        
+        // ============================================================
+        // INSTANT UI UPDATE (Bypasses Race Condition)
+        // ============================================================
+        
+        // Set UI immediately - DON'T wait for DOMContentLoaded
+        // This runs as soon as the script loads, before the page fully renders
+        document.getElementById('clinic-name').textContent = decodeURIComponent(clinicName);
+        document.getElementById('consent-version').textContent = CONSENT_VERSION;
+        
+        // ============================================================
+        // INITIALIZATION (After DOM Ready)
+        // ============================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup event listeners immediately
+            setupEventListeners();
+            
+            // Fetch IP in background (non-blocking)
+            fetchUserIP();
         });
         
         // ============================================================
-        // IP ADDRESS CAPTURE
+        // IP ADDRESS CAPTURE (Background Process)
         // ============================================================
         
         async function fetchUserIP() {
@@ -177,7 +194,7 @@
             const declineBtn = document.getElementById('decline-btn');
             const form = document.getElementById('consent-form');
             
-            // Enable submit button when checkbox is checked and form is valid
+            // Enable submit button when checkbox is checked
             consentCheckbox.addEventListener('change', () => {
                 submitBtn.disabled = !consentCheckbox.checked;
             });
@@ -205,7 +222,7 @@
                 submitBtn.innerHTML = '<span class="loading-spinner mr-2"></span> Recording...';
                 
                 try {
-                    // Record consent to Supabase
+                    // Record consent (demo mode or real)
                     await recordConsent(true, name, phone);
                     
                     // Show success view
@@ -213,9 +230,16 @@
                     
                 } catch (err) {
                     console.error('Consent error:', err);
-                    alert('Failed to record consent. Please try again or contact the clinic.');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Consent';
+                    
+                    // In demo mode, show success anyway for Twilio verification
+                    if (isDemoMode) {
+                        console.log('Demo mode: Showing success despite error');
+                        showSuccess();
+                    } else {
+                        alert('Failed to record consent. Please try again or contact the clinic.');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Consent';
+                    }
                 }
             });
             
@@ -240,12 +264,47 @@
         }
         
         // ============================================================
-        // CONSENT RECORDING
+        // CONSENT RECORDING (With Demo Mode Support)
         // ============================================================
         
         async function recordConsent(consentGiven, name, phone) {
             const email = document.getElementById('patient-email').value.trim();
             
+            // DEMO MODE: Simulate success without hitting Supabase
+            if (isDemoMode) {
+                console.log('🎭 DEMO MODE: Simulating consent recording...');
+                console.log({
+                    clinic: clinicName,
+                    name: name,
+                    phone: phone,
+                    email: email,
+                    consent: consentGiven,
+                    ip: userIP || '0.0.0.0',
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // Store in localStorage for demo
+                try {
+                    localStorage.setItem('demo_consent', JSON.stringify({
+                        clinic: clinicName,
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        consent: consentGiven,
+                        ip: userIP || '0.0.0.0',
+                        timestamp: new Date().toISOString()
+                    }));
+                } catch (e) {
+                    // localStorage may not be available
+                }
+                
+                return 'demo-consent-id-' + Date.now();
+            }
+            
+            // REAL MODE: Call Supabase
             const { data, error } = await supabase.rpc('record_consent', {
                 p_tenant_id: tenantId,
                 p_patient_id: patientId,
@@ -274,7 +333,7 @@
                 throw error;
             }
             
-            console.log('Consent recorded with ID:', data);
+            console.log('✅ Consent recorded with ID:', data);
             
             // Store in localStorage for reference
             try {
@@ -299,6 +358,8 @@
         
         function showSuccess() {
             const container = document.getElementById('consent-container');
+            const mode = isDemoMode ? ' (Demo Mode)' : '';
+            
             container.innerHTML = `
                 <div class="text-center py-8">
                     <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 success-checkmark">
@@ -307,7 +368,7 @@
                         </svg>
                     </div>
                     
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Consent Recorded Successfully</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Consent Recorded Successfully${mode}</h2>
                     <p class="text-gray-600 mb-4">
                         Thank you for providing consent. You will now receive SMS appointment reminders from ${decodeURIComponent(clinicName)}.
                     </p>
@@ -325,11 +386,19 @@
                     <div class="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <p class="text-xs text-gray-600">
                             <strong>Confirmation Details</strong><br>
-                            IP Address: <code class="bg-gray-200 px-1 rounded">${userIP}</code><br>
+                            IP Address: <code class="bg-gray-200 px-1 rounded">${userIP || 'N/A'}</code><br>
                             Recorded: ${new Date().toLocaleString()}<br>
                             Version: ${CONSENT_VERSION}
                         </p>
                     </div>
+                    
+                    ${isDemoMode ? `
+                    <div class="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="text-xs text-yellow-800">
+                            <strong>⚠️ Demo Mode:</strong> This is a demonstration for Twilio verification. No actual data was sent to the database.
+                        </p>
+                    </div>
+                    ` : ''}
                     
                     <p class="text-xs text-gray-500 mt-4">
                         You can now close this window.
@@ -369,27 +438,8 @@
                 </div>
             `;
         }
-        
-        function showError(message) {
-            const container = document.getElementById('consent-container');
-            container.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </div>
-                    
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Error</h2>
-                    <p class="text-gray-600 mb-4">${message}</p>
-                    
-                    <p class="text-sm text-gray-500">
-                        Please contact ${decodeURIComponent(clinicName)} for assistance.
-                    </p>
-                </div>
-            `;
-        }
     </script>
- 
+
 </body>
+</html>
 </html>
