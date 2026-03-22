@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — Recall</title>
+    <meta name="description" content="Recall's Privacy Policy. Learn how we collect, use, and protect your healthcare practice data.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #fdfcfb;
+            --surface: #ffffff;
+            --text: #0a0a0a;
+            --text-muted: #6b7280;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #059669;
+            --warning: #f59e0b;
+            --border: #e5e7eb;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        .display-font {
+            font-family: 'Fraunces', Georgia, serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        /* ── Navigation ── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(253, 252, 251, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── Page Hero ── */
+        .page-hero {
+            padding: 7rem 2rem 4rem;
+            background: linear-gradient(180deg, #f0f5ff 0%, var(--bg) 100%);
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .page-hero .section-label {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+        }
+
+        .page-hero h1 {
+            font-size: 3.25rem;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+        }
+
+        .page-hero p {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .page-hero .meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+        }
+
+        .page-hero .meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .meta-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 50%;
+        }
+
+        /* ── Layout ── */
+        .policy-layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem 6rem;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 4rem;
+            align-items: start;
+        }
+
+        /* ── Sticky Sidebar TOC ── */
+        .toc {
+            position: sticky;
+            top: 88px;
+        }
+
+        .toc-inner {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .toc-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .toc-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .toc-list a {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .toc-list a:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .toc-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.75rem 0;
+        }
+
+        .toc-back {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-decoration: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .toc-back:hover {
+            background: var(--accent-light);
+        }
+
+        /* ── Policy Content ── */
+        .policy-content {
+            min-width: 0;
+        }
+
+        .policy-section {
+            margin-bottom: 3.5rem;
+            scroll-margin-top: 100px;
+        }
+
+        .policy-section h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .policy-section p {
+            color: #374151;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .policy-section p:last-child {
+            margin-bottom: 0;
+        }
+
+        .policy-section ul,
+        .policy-section ol {
+            padding-left: 0;
+            list-style: none;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+        }
+
+        .policy-section ul li,
+        .policy-section ol li {
+            color: #374151;
+            line-height: 1.7;
+            padding-left: 1.75rem;
+            position: relative;
+        }
+
+        .policy-section ul li::before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0.65rem;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        .policy-section ol {
+            counter-reset: list-counter;
+        }
+
+        .policy-section ol li {
+            counter-increment: list-counter;
+        }
+
+        .policy-section ol li::before {
+            content: counter(list-counter) ".";
+            position: absolute;
+            left: 0;
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 0.875rem;
+        }
+
+        /* Callout boxes */
+        .callout {
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .callout-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            line-height: 1.5;
+        }
+
+        .callout-body {
+            flex: 1;
+        }
+
+        .callout-body strong {
+            display: block;
+            font-size: 0.9375rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .callout-body p {
+            font-size: 0.9375rem;
+            margin-bottom: 0 !important;
+            line-height: 1.65;
+        }
+
+        .callout-blue {
+            background: var(--accent-light);
+            border: 1px solid #bfdbfe;
+        }
+
+        .callout-blue .callout-body strong,
+        .callout-blue .callout-body p {
+            color: #1e40af;
+        }
+
+        .callout-green {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+        }
+
+        .callout-green .callout-body strong,
+        .callout-green .callout-body p {
+            color: #065f46;
+        }
+
+        .callout-amber {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+        }
+
+        .callout-amber .callout-body strong,
+        .callout-amber .callout-body p {
+            color: #92400e;
+        }
+
+        /* Data table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.25rem;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+
+        .data-table thead {
+            background: #f8fafc;
+        }
+
+        .data-table th {
+            padding: 0.875rem 1.25rem;
+            text-align: left;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 0.875rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            color: #374151;
+            vertical-align: top;
+            line-height: 1.65;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:nth-child(even) td {
+            background: #fafafa;
+        }
+
+        /* Divider */
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin-bottom: 3.5rem;
+        }
+
+        /* Contact card */
+        .contact-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            box-shadow: var(--shadow-sm);
+            margin-top: 1.5rem;
+        }
+
+        .contact-avatar {
+            width: 64px;
+            height: 64px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            flex-shrink: 0;
+        }
+
+        .contact-card h4 {
+            font-size: 1.125rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-card p {
+            color: var(--text-muted);
+            font-size: 0.9375rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .contact-card a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .contact-card a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Footer ── */
+        footer {
+            padding: 4rem 2rem 2rem;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand p {
+            color: var(--text-muted);
+            margin: 1rem 0;
+        }
+
+        .footer-links h4 {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .policy-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .toc {
+                position: static;
+                order: -1;
+            }
+
+            .footer-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .page-hero h1 {
+                font-size: 2.25rem;
+            }
+
+            .page-hero .meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .meta-dot {
+                display: none;
+            }
+
+            .policy-section h2 {
+                font-size: 1.375rem;
+            }
+
+            .contact-card {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-hero > * {
+            animation: fadeInUp 0.7s ease-out both;
+        }
+
+        .page-hero .section-label { animation-delay: 0s; }
+        .page-hero h1             { animation-delay: 0.1s; }
+        .page-hero p              { animation-delay: 0.2s; }
+        .page-hero .meta          { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🏥</div>
+                <span class="display-font">Recall</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="index.html#services">Services</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+                <li><a href="index.html#testimonials">Testimonials</a></li>
+                <li><a href="#" class="btn btn-primary">Start Free Trial</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <span class="section-label">Legal</span>
+        <h1 class="display-font">Privacy Policy</h1>
+        <p>How Recall collects, uses, and protects your practice data — written in plain English.</p>
+        <div class="meta">
+            <span>&#128197; Effective Date: 1 January 2026</span>
+            <span class="meta-dot"></span>
+            <span>&#128197; Last Updated: 22 March 2026</span>
+            <span class="meta-dot"></span>
+            <span>&#128274; HIPAA Compliant</span>
+        </div>
+    </section>
+
+    <!-- Main Layout -->
+    <div class="policy-layout">
+
+        <!-- Sidebar Table of Contents -->
+        <aside class="toc" aria-label="Table of contents">
+            <div class="toc-inner">
+                <p class="toc-title">On this page</p>
+                <ul class="toc-list">
+                    <li><a href="#overview">1. Overview</a></li>
+                    <li><a href="#data-we-collect">2. Data We Collect</a></li>
+                    <li><a href="#how-we-use">3. How We Use Your Data</a></li>
+                    <li><a href="#sms-communications">4. SMS Communications</a></li>
+                    <li><a href="#data-sharing">5. Data Sharing</a></li>
+                    <li><a href="#hipaa">6. HIPAA &amp; Healthcare Data</a></li>
+                    <li><a href="#data-security">7. Data Security</a></li>
+                    <li><a href="#retention">8. Retention &amp; Deletion</a></li>
+                    <li><a href="#your-rights">9. Your Rights</a></li>
+                    <li><a href="#cookies">10. Cookies</a></li>
+                    <li><a href="#children">11. Children's Privacy</a></li>
+                    <li><a href="#changes">12. Policy Changes</a></li>
+                    <li><a href="#contact">13. Contact Us</a></li>
+                </ul>
+                <div class="toc-divider"></div>
+                <a href="index.html" class="toc-back">
+                    &#8592; Back to Recall
+                </a>
+            </div>
+        </aside>
+
+        <!-- Policy Body -->
+        <main class="policy-content" id="main-content">
+
+            <!-- Intro callout -->
+            <div class="callout callout-blue">
+                <span class="callout-icon">&#128274;</span>
+                <div class="callout-body">
+                    <strong>Your privacy matters to us.</strong>
+                    <p>Recall is a HIPAA-compliant platform built for healthcare professionals. We never sell patient data, never use it for advertising, and go beyond baseline legal requirements to keep every record secure.</p>
+                </div>
+            </div>
+
+            <!-- 1. Overview -->
+            <section class="policy-section" id="overview">
+                <h2>
+                    <span class="section-num">1</span>
+                    <span class="display-font">Overview</span>
+                </h2>
+                <p>Recall Pty Ltd ("Recall", "we", "us", or "our") operates the Recall healthcare automation platform accessible at <strong>recallapp.io</strong> and related subdomains (the "Service"). This Privacy Policy explains what personal information we collect, why we collect it, how we use it, and your rights as a user.</p>
+                <p>By accessing or using Recall, you agree to the collection and use of information in accordance with this policy. If you are a healthcare practice using Recall on behalf of patients, you agree to obtain all necessary consents from those patients before uploading their information to the Service.</p>
+                <p>This policy applies to:</p>
+                <ul>
+                    <li>Healthcare providers, practice managers, and staff who create Recall accounts ("Practice Users").</li>
+                    <li>Patients whose contact details are uploaded into the platform by a practice ("Patients").</li>
+                    <li>Visitors to our marketing website and documentation.</li>
+                </ul>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 2. Data We Collect -->
+            <section class="policy-section" id="data-we-collect">
+                <h2>
+                    <span class="section-num">2</span>
+                    <span class="display-font">Data We Collect</span>
+                </h2>
+                <p>We collect the minimum information necessary to deliver the Service. The categories below describe what we collect, how we receive it, and why.</p>
+
+                <table class="data-table" aria-label="Categories of data collected">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Examples</th>
+                            <th>Source</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Account Information</strong></td>
+                            <td>Name, email address, password hash, practice name, billing address, phone number</td>
+                            <td>Provided by Practice User on sign-up</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Patient Contact Data</strong></td>
+                            <td>Patient name, mobile number, last appointment date, service type, preferred language</td>
+                            <td>Uploaded or synced by Practice User</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Conversation Data</strong></td>
+                            <td>Inbound and outbound SMS message content, timestamps, delivery status, patient responses</td>
+                            <td>Generated during campaign operation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Usage &amp; Analytics Data</strong></td>
+                            <td>Pages visited, features used, session duration, clicks, campaign performance metrics</td>
+                            <td>Automatically collected via cookies and server logs</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Device &amp; Technical Data</strong></td>
+                            <td>IP address, browser type, operating system, screen resolution, referring URL</td>
+                            <td>Automatically collected on each request</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Payment Data</strong></td>
+                            <td>Billing name, card last 4 digits, payment method type, transaction ID</td>
+                            <td>Provided at checkout; full card data handled by Stripe</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Support Communications</strong></td>
+                            <td>Emails, chat messages, and attachments sent to our support team</td>
+                            <td>Provided by the user</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="callout callout-green">
+                    <span class="callout-icon">&#10003;</span>
+                    <div class="callout-body">
+                        <strong>We do not collect sensitive health records.</strong>
+                        <p>Recall is a recall and scheduling automation tool. We do not collect clinical notes, diagnoses, medications, or full medical histories. Patient data is limited to what is required to send appointment reminders and process bookings.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 3. How We Use Your Data -->
+            <section class="policy-section" id="how-we-use">
+                <h2>
+                    <span class="section-num">3</span>
+                    <span class="display-font">How We Use Your Data</span>
+                </h2>
+                <p>We use your information only for the purposes described below:</p>
+                <ol>
+                    <li><strong>Providing the Service:</strong> Creating and managing your account, running automated recall campaigns, processing replies, and generating analytics reports.</li>
+                    <li><strong>Billing and Payments:</strong> Processing subscription fees, issuing invoices, and managing plan upgrades or cancellations.</li>
+                    <li><strong>Customer Support:</strong> Responding to your support requests, diagnosing issues, and improving product reliability.</li>
+                    <li><strong>Security and Fraud Prevention:</strong> Detecting unauthorised access, preventing abuse, and enforcing our Terms of Service.</li>
+                    <li><strong>Product Improvement:</strong> Analysing aggregated, anonymised usage patterns to improve features. We never use patient contact data for this purpose.</li>
+                    <li><strong>Legal Compliance:</strong> Meeting obligations under Australian Privacy Act 1988 (Cth), HIPAA (for US customers), GDPR (for EU customers), and other applicable laws.</li>
+                    <li><strong>Communications:</strong> Sending transactional emails (account alerts, billing receipts) and, with your permission, product newsletters and updates. You can opt out of marketing communications at any time.</li>
+                </ol>
+                <p>We do <strong>not</strong> use personal data to train machine learning models, serve third-party advertising, or build consumer profiles for resale.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 4. SMS Communications -->
+            <section class="policy-section" id="sms-communications">
+                <h2>
+                    <span class="section-num">4</span>
+                    <span class="display-font">SMS Communications</span>
+                </h2>
+                <p>SMS is the core delivery mechanism of the Recall platform. The following terms govern all SMS activity:</p>
+                <ul>
+                    <li><strong>Consent obligation:</strong> Practices are solely responsible for obtaining valid consent from patients before uploading their mobile numbers. By uploading a patient, you represent that you have the legal right to contact them.</li>
+                    <li><strong>Opt-out handling:</strong> Any patient who replies STOP, UNSUBSCRIBE, CANCEL, END, or QUIT is immediately removed from all future campaigns. Recall processes opt-outs in real time.</li>
+                    <li><strong>Message frequency:</strong> Patients receive recall messages only when a campaign is actively scheduled by the practice. Recall does not send unsolicited messages.</li>
+                    <li><strong>Message content:</strong> SMS content is set by the practice. Recall provides templates and enforces content guidelines; we do not transmit content that is unlawful, deceptive, or contrary to applicable carrier regulations.</li>
+                    <li><strong>Carrier compliance:</strong> All messages are delivered through tier-1 carriers in compliance with TCPA (US), ACMA Spam Act (AU), and equivalent regulations.</li>
+                    <li><strong>Message logs:</strong> Inbound and outbound SMS logs are stored securely for 12 months and are accessible only to authorised users within your practice account.</li>
+                </ul>
+
+                <div class="callout callout-amber">
+                    <span class="callout-icon">&#9888;</span>
+                    <div class="callout-body">
+                        <strong>Practice responsibility.</strong>
+                        <p>If a patient has requested to stop receiving communications, their number must not be re-uploaded to a new campaign. Practices that repeatedly upload opted-out numbers may have their account suspended.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 5. Data Sharing -->
+            <section class="policy-section" id="data-sharing">
+                <h2>
+                    <span class="section-num">5</span>
+                    <span class="display-font">Data Sharing &amp; Third Parties</span>
+                </h2>
+                <p>We never sell personal data. We share data only with the following categories of trusted sub-processors, each bound by data processing agreements consistent with this policy:</p>
+
+                <table class="data-table" aria-label="Third-party sub-processors">
+                    <thead>
+                        <tr>
+                            <th>Sub-Processor</th>
+                            <th>Purpose</th>
+                            <th>Data Shared</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Twilio</strong></td>
+                            <td>SMS delivery infrastructure</td>
+                            <td>Mobile number, message content</td>
+                            <td>USA / AU</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Stripe</strong></td>
+                            <td>Payment processing</td>
+                            <td>Billing name, card metadata</td>
+                            <td>USA</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Amazon Web Services</strong></td>
+                            <td>Cloud infrastructure &amp; storage</td>
+                            <td>All platform data (encrypted)</td>
+                            <td>AU (ap-southeast-2)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Datadog</strong></td>
+                            <td>Application monitoring &amp; logs</td>
+                            <td>Anonymised log data, error traces</td>
+                            <td>USA</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Intercom</strong></td>
+                            <td>Customer support chat</td>
+                            <td>Account email, name, support messages</td>
+                            <td>USA</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>We may also disclose personal data if required to do so by law, in response to a valid court order or subpoena, or to protect the rights, property, or safety of Recall, its users, or the public.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 6. HIPAA -->
+            <section class="policy-section" id="hipaa">
+                <h2>
+                    <span class="section-num">6</span>
+                    <span class="display-font">HIPAA &amp; Healthcare Data</span>
+                </h2>
+                <div class="callout callout-green">
+                    <span class="callout-icon">&#127973;</span>
+                    <div class="callout-body">
+                        <strong>Recall is HIPAA-compliant for US healthcare customers.</strong>
+                        <p>We sign Business Associate Agreements (BAAs) with all US-based healthcare providers on our Growth and Enterprise plans. Contact privacy@recallapp.io to request a BAA.</p>
+                    </div>
+                </div>
+                <p>As a Business Associate under HIPAA, Recall commits to the following obligations in relation to Protected Health Information (PHI):</p>
+                <ul>
+                    <li>Use or disclose PHI only as permitted by the BAA and the HIPAA Privacy Rule.</li>
+                    <li>Implement appropriate administrative, physical, and technical safeguards consistent with the HIPAA Security Rule.</li>
+                    <li>Report any known breach of unsecured PHI to the covered entity within 60 days of discovery.</li>
+                    <li>Not use PHI for independent purposes beyond those required to operate the Service.</li>
+                    <li>Ensure that any sub-contractors who handle PHI on our behalf sign equivalent agreements.</li>
+                    <li>Return or destroy PHI upon termination of the BAA.</li>
+                </ul>
+                <p>Australian customers are governed by the Australian Privacy Principles (APPs) under the Privacy Act 1988 (Cth) and, where applicable, the My Health Records Act 2012 (Cth). EU customers are governed by the GDPR — see Section 9 for your rights.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 7. Data Security -->
+            <section class="policy-section" id="data-security">
+                <h2>
+                    <span class="section-num">7</span>
+                    <span class="display-font">Data Security</span>
+                </h2>
+                <p>Security is foundational to Recall. We maintain the following safeguards:</p>
+                <ul>
+                    <li><strong>Encryption in transit:</strong> All data transmitted between your browser, our API, and third-party services is encrypted using TLS 1.2 or higher.</li>
+                    <li><strong>Encryption at rest:</strong> All databases and file storage use AES-256 encryption at rest on AWS infrastructure in the ap-southeast-2 (Sydney) region.</li>
+                    <li><strong>Access controls:</strong> Role-based access control (RBAC) restricts which staff can view, export, or modify patient data within your practice account.</li>
+                    <li><strong>Multi-factor authentication:</strong> MFA is available to all users and required for admin-level accounts.</li>
+                    <li><strong>Penetration testing:</strong> We engage independent security firms to conduct annual penetration tests. Summary reports are available on request for Enterprise customers.</li>
+                    <li><strong>Audit logging:</strong> All access to patient records and account changes are logged with timestamps and user identifiers, retained for 24 months.</li>
+                    <li><strong>Incident response:</strong> We maintain a documented incident response plan. Affected customers will be notified within 72 hours of a confirmed breach involving their data.</li>
+                </ul>
+                <p>No system is 100% secure. If you discover a potential security vulnerability, please report it responsibly to <strong>security@recallapp.io</strong>. We operate a responsible disclosure programme and will respond within 2 business days.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 8. Retention & Deletion -->
+            <section class="policy-section" id="retention">
+                <h2>
+                    <span class="section-num">8</span>
+                    <span class="display-font">Retention &amp; Deletion</span>
+                </h2>
+                <p>We retain your data only for as long as necessary to provide the Service or meet legal obligations:</p>
+                <table class="data-table" aria-label="Data retention periods">
+                    <thead>
+                        <tr>
+                            <th>Data Type</th>
+                            <th>Retention Period</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Active account data (practice users, patient records)</td>
+                            <td>Duration of subscription</td>
+                        </tr>
+                        <tr>
+                            <td>SMS message logs</td>
+                            <td>12 months from message date</td>
+                        </tr>
+                        <tr>
+                            <td>Billing records and invoices</td>
+                            <td>7 years (tax compliance)</td>
+                        </tr>
+                        <tr>
+                            <td>Audit &amp; security logs</td>
+                            <td>24 months</td>
+                        </tr>
+                        <tr>
+                            <td>Data after account cancellation</td>
+                            <td>90-day grace period, then permanent deletion</td>
+                        </tr>
+                        <tr>
+                            <td>Anonymised, aggregated analytics</td>
+                            <td>Indefinitely (cannot be re-identified)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>You may request immediate deletion of your account and all associated patient data at any time by contacting privacy@recallapp.io. We will confirm deletion within 30 days.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 9. Your Rights -->
+            <section class="policy-section" id="your-rights">
+                <h2>
+                    <span class="section-num">9</span>
+                    <span class="display-font">Your Rights</span>
+                </h2>
+                <p>Depending on your location, you have the following rights regarding your personal data:</p>
+                <ul>
+                    <li><strong>Right to access:</strong> Request a copy of the personal data we hold about you.</li>
+                    <li><strong>Right to rectification:</strong> Request correction of inaccurate or incomplete data.</li>
+                    <li><strong>Right to erasure ("right to be forgotten"):</strong> Request deletion of your personal data, subject to legal retention requirements.</li>
+                    <li><strong>Right to data portability:</strong> Request your data in a structured, machine-readable format (e.g. CSV).</li>
+                    <li><strong>Right to restriction:</strong> Request that we limit how we process your data in certain circumstances.</li>
+                    <li><strong>Right to object:</strong> Object to processing based on our legitimate interests, including direct marketing.</li>
+                    <li><strong>Right to withdraw consent:</strong> Where processing is based on your consent, withdraw it at any time without affecting prior processing.</li>
+                    <li><strong>Right to lodge a complaint:</strong> If you are in the EU/EEA, you may lodge a complaint with your local Data Protection Authority. Australian users may complain to the Office of the Australian Information Commissioner (OAIC).</li>
+                </ul>
+                <p>To exercise any of these rights, contact us at privacy@recallapp.io. We will respond within 30 days (or 45 days where permitted by applicable law for complex requests).</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 10. Cookies -->
+            <section class="policy-section" id="cookies">
+                <h2>
+                    <span class="section-num">10</span>
+                    <span class="display-font">Cookies &amp; Tracking</span>
+                </h2>
+                <p>We use cookies and similar technologies to operate the platform and improve your experience. The categories we use are:</p>
+                <ul>
+                    <li><strong>Strictly necessary cookies:</strong> Required for authentication, session management, and security. Cannot be disabled.</li>
+                    <li><strong>Functional cookies:</strong> Remember your preferences (e.g. timezone, language, dashboard layout).</li>
+                    <li><strong>Analytics cookies:</strong> Collect anonymised data about how features are used, via self-hosted analytics. We do not use Google Analytics on authenticated pages.</li>
+                    <li><strong>Marketing cookies:</strong> Used only on our public marketing website to measure the effectiveness of paid campaigns. These are not placed on the application dashboard.</li>
+                </ul>
+                <p>You can manage cookie preferences in your browser settings. Disabling functional cookies may affect the usability of some features. We do not use cookies to build advertising profiles or sell your data to advertising networks.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 11. Children's Privacy -->
+            <section class="policy-section" id="children">
+                <h2>
+                    <span class="section-num">11</span>
+                    <span class="display-font">Children's Privacy</span>
+                </h2>
+                <p>The Recall platform is designed for use by healthcare professionals. Our Service is not directed at individuals under the age of 16, and we do not knowingly collect personal data from children. If a practice manages appointments for minor patients (e.g. paediatric or veterinary services where the account holder is the parent/guardian), the practice is responsible for ensuring they hold appropriate parental consent.</p>
+                <p>If we become aware that we have inadvertently collected personal data from a child without appropriate consent, we will take steps to delete that data promptly. Please contact us at privacy@recallapp.io if you believe this has occurred.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 12. Changes -->
+            <section class="policy-section" id="changes">
+                <h2>
+                    <span class="section-num">12</span>
+                    <span class="display-font">Policy Changes</span>
+                </h2>
+                <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors. When we make material changes, we will:</p>
+                <ul>
+                    <li>Post the updated policy on this page with a revised "Last Updated" date.</li>
+                    <li>Send an email notification to all active account holders at least 14 days before the changes take effect.</li>
+                    <li>Display a banner in the Recall dashboard for 30 days after any material update.</li>
+                </ul>
+                <p>Your continued use of the Service after the effective date of any revised policy constitutes your acceptance of those changes. If you do not agree to the updated terms, you may cancel your account before the effective date.</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 13. Contact -->
+            <section class="policy-section" id="contact">
+                <h2>
+                    <span class="section-num">13</span>
+                    <span class="display-font">Contact Us</span>
+                </h2>
+                <p>If you have any questions, concerns, or requests relating to this Privacy Policy or our data practices, please reach out to our Privacy team:</p>
+
+                <div class="contact-card">
+                    <div class="contact-avatar">&#128274;</div>
+                    <div>
+                        <h4>Recall Privacy Team</h4>
+                        <p>We aim to respond to all privacy inquiries within 2 business days.</p>
+                        <a href="mailto:privacy@recallapp.io">privacy@recallapp.io</a>
+                    </div>
+                </div>
+
+                <div class="contact-card">
+                    <div class="contact-avatar">&#127968;</div>
+                    <div>
+                        <h4>Postal Address</h4>
+                        <p>For formal written requests under privacy legislation:</p>
+                        <a href="mailto:legal@recallapp.io">Recall Pty Ltd, Level 10, 1 Collins Street, Melbourne VIC 3000, Australia</a>
+                    </div>
+                </div>
+
+                <div class="contact-card">
+                    <div class="contact-avatar">&#128203;</div>
+                    <div>
+                        <h4>HIPAA BAA Requests</h4>
+                        <p>US healthcare providers requiring a Business Associate Agreement:</p>
+                        <a href="mailto:privacy@recallapp.io">privacy@recallapp.io</a>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">🏥</div>
+                    <span class="display-font">Recall</span>
+                </a>
+                <p>Healthcare automation that actually works. Turn no-shows into revenue.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="index.html#features">Features</a></li>
+                    <li><a href="index.html#pricing">Pricing</a></li>
+                    <li><a href="#">Integrations</a></li>
+                    <li><a href="#">API Docs</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="privacy-policy.html" style="color: var(--accent); font-weight: 600;">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">HIPAA Compliance</a></li>
+                    <li><a href="#">Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&#169; 2026 Recall. All rights reserved. Built with &#10084;&#65039; for healthcare professionals.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
