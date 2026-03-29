@@ -1,9 +1,38 @@
+# Recall - Production Requirements
+# Python 3.11+
+
+# Core Framework
+streamlit==1.31.0
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Database & Authentication
 supabase==2.0.3
-twilio==8.10.0
+psycopg2-binary==2.9.9
+
+# SMS & Communication
+vonage==3.5.0
+
+# Email Services
+resend==0.8.0
+
+# Security & Encryption
+cryptography==42.0.0
 python-dotenv==1.0.0
 pydantic>=2.10.0
+
+# HTTP Client
 httpx==0.24.1
+
+# Rate Limiting
 slowapi==0.1.9
+
+# File Handling
 python-multipart==0.0.6
+
+# Data Processing
+pandas==2.1.4
+
+# Additional Security
+bcrypt==4.1.2
+PyJWT==2.8.0
