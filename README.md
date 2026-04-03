@@ -58,5 +58,5 @@
 * Python 3.9+
 * Node.js 16+ (for React dashboard)
 * Supabase account
-* Twilio account
+* SMS Provider(Pilvo, Twilio, Vonage) and or email(Resend) 
 * PostgreSQL database
